@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Domingas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+  --c0:#2e2640; --c1:#7462b8; --c2:#eadcb8; --c3:#fcf7ea; --pink:#e98aa8;
+  background:var(--c3);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --c0:#221c30; --c1:#5f4fa0; --c2:#cdbf98; --c3:#e8dfcb; --pink:#c9708e; }
+}
+:root[data-theme="dark"]{ --c0:#221c30; --c1:#5f4fa0; --c2:#cdbf98; --c3:#e8dfcb; --pink:#c9708e; }
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{height:100%;margin:0;background:var(--c3);color:var(--c0);
+  font-family:"VT323",ui-monospace,"Courier New",monospace;font-size:22px;line-height:1.15;overflow:hidden}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px dashed var(--c0);outline-offset:2px}
+.px{font-family:"Press Start 2P",ui-monospace,monospace}
+
+.lcd{height:100%;display:grid;grid-template-rows:minmax(200px,38%) minmax(0,1fr);position:relative;
+  box-shadow:inset 0 0 90px rgba(46,38,64,.14)}
+.lcd::after{content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background-image:linear-gradient(rgba(46,38,64,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(46,38,64,.045) 1px,transparent 1px);
+  background-size:3px 3px}
+@media (min-width:760px) and (min-aspect-ratio:1/1){
+  .lcd{grid-template-columns:minmax(0,1fr) clamp(380px,38vw,500px);grid-template-rows:minmax(0,1fr)}
+  .panel{border-top:none!important;border-left:4px solid var(--c0)}
+}
+.lcd[data-mode="home"]{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}
+.lcd[data-mode="home"] .panel{display:none}
+.lcd[data-mode="full"]{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}
+.lcd[data-mode="full"] .world{display:none}
+.lcd[data-mode="full"] .panel{border:none!important}
+.lcd[data-mode="full"] .view{padding-top:22px}
+.lcd[data-mode="full"] .view > *{max-width:640px;margin-left:auto;margin-right:auto}
+.lcd[data-mode="split"] .panel{animation:slidein .25s steps(4)}
+@keyframes slidein{from{opacity:0;transform:translateY(24px)}}
+.homebar{position:absolute;left:0;right:0;bottom:16px;display:none;justify-content:center;gap:12px;padding:0 10px;flex-wrap:nowrap}
+.lcd[data-mode="home"] .homebar{display:flex}
+.lcd[data-mode="home"] .dialog{bottom:84px;max-height:104px}
+.homebar .btn{font-size:clamp(18px,4.6vw,25px);padding:7px 12px;box-shadow:4px 4px 0 var(--c0);white-space:nowrap}
+.hud .menu-btn{pointer-events:auto;background:var(--c3);border:3px solid var(--c0);box-shadow:3px 3px 0 var(--c0);padding:7px 10px;font-family:"Press Start 2P",ui-monospace,monospace;font-size:11px;line-height:1.4}
+.hud .menu-btn.dirty::after{content:"";display:inline-block;width:6px;height:6px;margin-left:6px;background:var(--pink);vertical-align:middle}
+.hud .menu-btn:active{background:var(--c0);color:var(--c3)}
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(46,38,64,.45);z-index:40}
+.scrim[hidden],.drawer[hidden]{display:none}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(360px,88vw);z-index:45;background:var(--c3);border-left:4px solid var(--c0);
+  padding:calc(env(safe-area-inset-top,0px) + 14px) 16px calc(env(safe-area-inset-bottom,0px) + 16px);display:flex;flex-direction:column;gap:12px;
+  animation:drawer .2s steps(3)}
+@keyframes drawer{from{transform:translateX(40px);opacity:0}}
+.drawer .split{margin-bottom:8px}
+/* book cover */
+.cover{width:min(250px,72%);aspect-ratio:3/4;margin:6px auto 28px;background:var(--c1);color:var(--c3);border:4px solid var(--c0);
+  box-shadow:inset 16px 0 0 var(--c0),inset 20px 0 0 var(--c2),5px 5px 0 var(--c3),9px 9px 0 var(--c0),13px 13px 0 var(--c2),17px 17px 0 var(--c0);
+  padding:26px 16px 16px 36px;display:flex;flex-direction:column;gap:12px}
+.cover .t{font-family:"Press Start 2P",ui-monospace,monospace;font-size:clamp(11px,3.4vw,15px);line-height:1.6;overflow-wrap:anywhere;flex:1}
+.cover .a{font-size:22px;line-height:1}
+.cover .d{font-family:"Press Start 2P",ui-monospace,monospace;font-size:7px;color:var(--c2);line-height:1.6;border-top:2px solid var(--c2);padding-top:8px}
+.big-title{font-size:32px;line-height:1;margin:0 0 4px}
+.ten.small{grid-template-columns:repeat(10,1fr);gap:3px}
+.ten.small button{font-size:17px;padding:2px 0;border-width:2px;min-width:0}
+.ten button{min-width:0}
+.rrow{padding:10px 0;border-bottom:2px dashed var(--c2)}
+.rrow .nm{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sticky{position:sticky;bottom:-32px;background:var(--c3);padding:14px 0 16px;margin-top:8px;border-top:3px solid var(--c0)}
+.table3{display:grid;grid-template-columns:28px 1fr 46px 46px;gap:8px 10px;align-items:center}
+.pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
+.pick button{background:var(--c3);border:3px solid var(--c0);padding:6px 4px;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:19px}
+.pick button[aria-pressed="true"]{background:var(--c2);box-shadow:inset 0 0 0 3px var(--c0)}
+
+
+.world{position:relative;overflow:hidden;min-height:0;container-type:size}
+.sign{position:absolute;top:clamp(10px,3cqh,28px);left:50%;transform:translateX(-50%);pointer-events:none;text-align:center;
+  background:#fffdf6;color:var(--c0);padding:clamp(8px,1.6cqw,16px) clamp(14px,3cqw,30px) clamp(7px,1.3cqw,13px);
+  border:4px solid var(--c0);box-shadow:inset 0 0 0 3px #fffdf6,inset 0 0 0 5px var(--c1),6px 6px 0 rgba(46,38,64,.25);white-space:nowrap}
+.sign .n{display:block;font-family:"Press Start 2P",ui-monospace,monospace;font-size:clamp(15px,4.6cqw,46px);line-height:1.1;letter-spacing:.04em;color:var(--c0)}
+.sign .s{display:block;font-size:clamp(15px,2.2cqw,26px);color:var(--c1);margin-top:clamp(3px,.8cqw,8px)}
+.sign::before,.sign::after{content:"";position:absolute;top:9px;width:5px;height:5px;background:var(--pink)}
+.sign::before{left:9px}.sign::after{right:9px}
+canvas.stage{position:absolute;image-rendering:pixelated;image-rendering:crisp-edges}
+.hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;gap:8px;pointer-events:none}
+.hud span:not(.x){background:var(--c3);border:3px solid var(--c0);padding:5px 7px;font-size:10px;line-height:1.4;white-space:nowrap}
+.dialog{position:absolute;left:10px;right:10px;bottom:10px;height:26%;min-height:78px;max-height:140px;background:var(--c3);
+  border:4px solid var(--c0);box-shadow:inset 0 0 0 3px var(--c2);padding:9px 14px 8px;overflow:hidden}
+.dialog .who{font-size:9px;min-height:10px;margin-bottom:6px}
+.dialog .txt{font-size:21px;line-height:1.02;height:calc(100% - 18px);overflow-y:auto;white-space:pre-wrap;scrollbar-width:none}
+.dialog .txt::-webkit-scrollbar{display:none}
+
+.panel{display:flex;flex-direction:column;min-height:0;border-top:4px solid var(--c0)}
+.bar{flex:none;display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:4px solid var(--c0)}
+.bar .title{flex:1;min-width:0;font-family:"Press Start 2P",ui-monospace,monospace;font-size:10px;line-height:1.5}
+.bar select{flex:1;min-width:0}
+.ghost{background:none;border:3px solid var(--c0);padding:3px 10px;font-size:20px;white-space:nowrap}
+.ghost:active{background:var(--c0);color:var(--c3)}
+.view{flex:1;overflow-y:auto;padding:16px 16px 32px;min-height:0}
+.view p{margin:0 0 12px}
+.btn{background:var(--c3);color:var(--c0);border:3px solid var(--c0);box-shadow:3px 3px 0 var(--c0);padding:4px 14px;font-size:21px}
+.btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--c0)}
+.btn.primary{background:var(--c1);color:var(--c3)}
+.btn:disabled{opacity:.45;cursor:default;transform:none}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+input,textarea,select{width:100%;background:var(--c2);color:var(--c0);border:none;border-bottom:3px solid var(--c0);
+  padding:4px 8px;outline:none;font-size:21px;border-radius:0}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--c0) 50%),linear-gradient(-45deg,transparent 50%,var(--c0) 50%);
+  background-position:calc(100% - 16px) 55%,calc(100% - 10px) 55%;background-size:6px 6px;background-repeat:no-repeat;padding-right:30px}
+textarea{resize:vertical;min-height:56px;line-height:1.05}
+input::placeholder,textarea::placeholder{color:var(--c1)}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--c0);margin:0}
+label.f{display:block;margin:14px 0 4px;font-size:19px}
+.muted{color:var(--c1)}
+.note{font-size:18px;color:var(--c1)}
+.lbl{font-family:"Press Start 2P",ui-monospace,monospace;font-size:8px;display:block;margin:18px 0 8px;line-height:1.5}
+.avatar{width:28px;height:38px;image-rendering:pixelated;flex:none}
+
+.pick-dd{position:relative;flex:1;min-width:0}
+.dd-btn{width:100%;display:flex;align-items:center;gap:10px;background:#fffdf6;color:var(--c0);border:3px solid var(--c0);box-shadow:3px 3px 0 var(--c0);padding:4px 10px;font-size:21px;text-align:left}
+.dd-btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--c0)}
+.dd-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dd-arrow{font-size:13px;color:var(--c1)}
+.dd-btn[aria-expanded="true"] .dd-arrow{transform:rotate(180deg)}
+.dd-list{position:absolute;left:0;right:0;top:calc(100% + 8px);z-index:30;list-style:none;margin:0;padding:6px;max-height:min(320px,55vh);overflow-y:auto;
+  background:#fffdf6;border:4px solid var(--c0);box-shadow:inset 0 0 0 2px #fffdf6,inset 0 0 0 4px var(--c1),5px 5px 0 rgba(46,38,64,.3);outline:none}
+.dd-list[hidden]{display:none}
+.dd-list li{display:grid;grid-template-columns:18px 1fr;gap:4px;align-items:start;padding:6px 8px;cursor:pointer}
+.dd-list li.active{background:var(--c2)}
+.dd-list li.on .dd-name{color:var(--c1)}
+.dd-mark{font-size:13px;line-height:22px;color:var(--pink)}
+.dd-name{display:block;font-size:21px;line-height:1.05}
+.dd-sub{display:block;font-size:17px;color:var(--c1);line-height:1.1}
+/* main list */
+.stats{display:flex;gap:20px;flex-wrap:wrap;margin:0 0 14px;font-size:20px}
+.heads{display:grid;grid-template-columns:1fr 46px 46px;gap:8px;padding:0 4px 6px 38px;font-family:"Press Start 2P",ui-monospace,monospace;font-size:7px;color:var(--c1)}
+.heads span:not(:first-child){text-align:center}
+.mrow{display:grid;grid-template-columns:28px 1fr 46px 46px;gap:8px 10px;align-items:center;width:100%;
+  background:none;border:none;border-bottom:2px dashed var(--c2);padding:6px 4px;text-align:left}
+.mrow:hover{background:var(--c2)}
+.mrow b{font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cell{text-align:center;border:3px solid var(--c0);padding:1px 0;font-size:21px}
+.cell.on{background:var(--pink);color:var(--c0)}
+.cell.empty{border-style:dotted;color:var(--c1)}
+.cell.hit{outline:3px solid var(--c0);outline-offset:2px}
+.foot{margin-top:18px}
+
+/* rate view */
+.pers{display:flex;align-items:center;gap:12px}
+.pers b{font-weight:400;font-size:28px}
+.ten{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.ten button{background:var(--c3);border:3px solid var(--c0);padding:6px 0;font-size:24px}
+.ten button[aria-pressed="true"]{background:var(--pink);color:var(--c0)}
+.double{border:3px solid var(--c0);padding:10px 12px;box-shadow:inset 0 0 0 2px var(--c2)}
+.double q{display:block;margin-top:6px;font-size:21px}
+.big{font-family:"Press Start 2P",ui-monospace,monospace;font-size:16px}
+.badge{font-family:"Press Start 2P",ui-monospace,monospace;font-size:8px;border:2px solid var(--c0);padding:3px 5px;white-space:nowrap;line-height:1.3}
+.badge.hit{background:var(--c0);color:var(--c3)}
+.split{display:flex;justify-content:space-between;align-items:center;gap:10px}
+
+/* menu */
+.menu{display:grid;gap:10px}
+.menu button{text-align:left;background:var(--c3);border:3px solid var(--c0);padding:10px 12px;box-shadow:3px 3px 0 var(--c0)}
+.menu button:active{transform:translate(2px,2px);box-shadow:1px 1px 0 var(--c0)}
+.menu b{display:block;font-family:"Press Start 2P",ui-monospace,monospace;font-size:10px;font-weight:400;margin-bottom:8px}
+.menu span{font-size:19px;color:var(--c1)}
+.toggle{display:flex;gap:10px;align-items:center;margin-top:22px;font-size:20px;cursor:pointer}
+
+.list{display:grid;gap:8px}
+.item{display:flex;gap:10px;align-items:center;border:3px solid var(--c0);padding:6px 8px;width:100%;background:none;text-align:left}
+.item .grow{flex:1;min-width:0}
+.item b{font-weight:400}
+.item .sub{color:var(--c1);font-size:18px;display:block;line-height:1.1}
+.builder{display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:center}
+.builder canvas{width:72px;height:114px;image-rendering:pixelated;border:3px solid var(--c0);background:var(--c3)}
+.opts{display:grid;gap:6px}
+.opt{display:grid;grid-template-columns:62px 30px 1fr 30px;align-items:center;gap:6px;font-size:19px}
+.opt button{background:var(--c3);border:2px solid var(--c0);padding:0;height:26px}
+.opt .v{text-align:center}
+.chk{display:flex;gap:16px;font-size:19px}
+.chk label{display:flex;gap:6px;align-items:center;cursor:pointer}
+.rank{display:grid;grid-template-columns:22px 28px 1fr auto;gap:10px;align-items:center;border-bottom:2px dashed var(--c2);padding:10px 0}
+.rank .pos,.rank .pct{font-family:"Press Start 2P",ui-monospace,monospace;font-size:10px}
+.card{border:3px solid var(--c0);padding:10px 12px;margin:0 0 14px;box-shadow:inset 0 0 0 2px var(--c2)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<div class="lcd" data-mode="home">
+  <section class="world" id="world" aria-label="La sala del club">
+    <canvas class="stage" id="cv" aria-hidden="true"></canvas>
+    <div class="sign" aria-hidden="true"><span class="n">Domingas</span><span class="s">club de lectura</span></div>
+    <div class="hud px"><span style="visibility:hidden"></span><button class="menu-btn" id="menuBtn" aria-haspopup="dialog">Menú</button></div>
+    <div class="dialog" role="status" aria-live="polite">
+      <div class="who px" id="dWho"></div>
+      <div class="txt" id="dTxt"></div>
+    </div>
+    <div class="homebar">
+      <button class="btn primary" id="addBookBtn">Añadir libro</button>
+      <button class="btn" id="playBtn">Jugar a los dobles</button>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="bar" id="bar"></div>
+    <div class="view" id="view"></div>
+  </section>
+</div>
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-label="Menú">
+  <div class="split"><span class="px" style="font-size:11px">Domingas</span><button class="ghost" id="drawerClose" aria-label="Cerrar menú">✕</button></div>
+  <div class="menu" id="drawerMenu"></div>
+</aside>
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+function h(tag, props = {}, ...kids){
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(props)){
+    if (k === 'class') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (v !== false && v != null) e.setAttribute(k, v === true ? '' : v);
+  }
+  for (const k of kids.flat()){ if (k == null || k === false) continue; e.append(k.nodeType ? k : String(k)); }
+  return e;
+}
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const newId = p => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const isNum = v => typeof v === 'number' && isFinite(v);
+const avg = a => a.length ? a.reduce((s, x) => s + x, 0) / a.length : null;
+const fmt = v => v == null ? '–' : v.toLocaleString('es-ES', {maximumFractionDigits:1});
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+const rKey = (b, m) => b + '~' + m;
+const today = () => { const d = new Date(); return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10); };
+function dateLabel(b){
+  try {
+    if (b.date){ const [y, m, d] = b.date.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-ES', {day:'numeric', month:'long', year:'numeric'}); }
+    if (b.month){ const [y, m] = b.month.split('-').map(Number); return cap(new Date(y, m - 1, 1).toLocaleDateString('es-ES', {month:'long', year:'numeric'})); }
+  } catch (e) {}
+  return '';
+}
+
+/* ---------- palette ---------- */
+let P = ['#2e2640','#7462b8','#eadcb8','#fcf7ea'];
+let avatarCache = {};
+function readPal(){ const cs = getComputedStyle(document.documentElement); P = [0,1,2,3].map(i => cs.getPropertyValue('--c'+i).trim() || P[i]); avatarCache = {}; scheduleRender(); }
+
+/* ---------- configuración ---------- */
+// Si publicas en https://USUARIO.github.io/REPO/ esto se detecta solo.
+// Rellénalo a mano si usas un dominio propio.
+const CONFIG = {
+  owner: '',            // usuario u organización de GitHub
+  repo: '',             // nombre del repositorio
+  branch: 'main',       // rama donde está data.json
+  path: 'data.json',    // archivo con los datos del club
+  model: 'gemini-3.5-flash-lite', // modelo de Gemini para preguntar al momento (los dobles automáticos usan el de .github/doubles/doubles.mjs)
+};
+(() => {
+  const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
+  if (!m) return;
+  if (!CONFIG.owner) CONFIG.owner = m[1];
+  if (!CONFIG.repo){ const seg = location.pathname.split('/').filter(Boolean)[0]; CONFIG.repo = seg && !/\.html?$/.test(seg) ? seg : `${m[1]}.github.io`; }
+})();
+const LS = {
+  get(k){ try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} },
+};
+const ghToken = () => LS.get('domingas-gh-token') || '';
+const apiKey = () => LS.get('domingas-gemini-key') || '';
+// Enlace de invitación: https://…/#club=<token>. Se guarda el token en este navegador y se borra de la barra de direcciones.
+let joinedNow = false;
+(() => {
+  const m = location.hash.match(/[#&]club=([^&]+)/); if (!m) return;
+  try { LS.set('domingas-gh-token', decodeURIComponent(m[1])); joinedNow = true; } catch (e) {}
+  history.replaceState(null, '', location.pathname + location.search);
+})();
+const inviteLink = () => `${location.origin}${location.pathname}#club=${encodeURIComponent(ghToken())}`;
+
+/* ---------- store: data.json en GitHub ---------- */
+const COLS = ['members', 'books', 'ratings', 'personas'];
+const empty = () => ({members:{}, books:{}, ratings:{}, personas:{}});
+let S = empty(), remote = empty(), remoteSha = null, remoteAt = '', pending = new Map();
+let storeMode = CONFIG.owner && CONFIG.repo ? 'github' : 'local';
+let sync = {state:'loading', msg:''}, pushing = false, pushAgain = false, pushTimer = null, retryDelay = 0;
+const normalize = d => { const o = empty(); if (d && typeof d === 'object') for (const c of COLS) if (d[c] && typeof d[c] === 'object') o[c] = d[c]; return o; };
+function withPending(base){
+  const o = {}; for (const c of COLS) o[c] = {...base[c]};
+  for (const op of pending.values()){ if (op.data == null) delete o[op.col][op.id]; else o[op.col][op.id] = op.data; }
+  return o;
+}
+function saveCache(){
+  LS.set('domingas-cache', JSON.stringify({remote, remoteSha, remoteAt}));
+  LS.set('domingas-pending', JSON.stringify([...pending.values()]));
+}
+function loadCache(){
+  try { const c = JSON.parse(LS.get('domingas-cache') || 'null'); if (c){ remote = normalize(c.remote); remoteSha = c.remoteSha || null; remoteAt = c.remoteAt || ''; } } catch (e) {}
+  try { const p = JSON.parse(LS.get('domingas-pending') || '[]'); for (const op of p) pending.set(op.col + '/' + op.id, op); } catch (e) {}
+  S = withPending(remote);
+}
+function setSync(state, msg = ''){ sync = {state, msg}; const b = $('#menuBtn'); if (b) b.classList.toggle('dirty', pending.size > 0); const st = $('#syncStatus'); if (st) st.textContent = syncLine(); if (!$('#drawer').hidden) renderDrawer(); }
+const apiURL = () => `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path.split('/').map(encodeURIComponent).join('/')}`;
+function ghHeaders(){ const h = {'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'}; const t = ghToken(); if (t) h.Authorization = 'Bearer ' + t; return h; }
+const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
+function b64encode(str){ const bytes = new TextEncoder().encode(str); let bin = ''; for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(bin); }
+async function fetchRemote(){
+  const res = await fetch(`${apiURL()}?ref=${encodeURIComponent(CONFIG.branch)}&t=${Date.now()}`, {headers:ghHeaders(), cache:'no-store'});
+  if (res.status === 404) return {data:empty(), sha:null};
+  if (res.status === 401) throw {code:'bad_token'};
+  if (!res.ok) throw {code:res.status === 403 || res.status === 429 ? 'gh_limit' : 'gh_error'};
+  const j = await res.json();
+  let text = j.content ? b64decode(j.content) : null;
+  if (text == null && j.download_url){ const r2 = await fetch(j.download_url + '?t=' + Date.now(), {cache:'no-store'}); text = await r2.text(); }
+  const raw = JSON.parse(text || '{}');
+  return {data:normalize(raw), sha:j.sha, at:raw.updatedAt || ''};
+}
+// Lee el data.json publicado junto a la página (sin API). Con onlyIfNewer, solo lo usa si es más reciente que lo que ya tenemos.
+async function pullPublished(onlyIfNewer){
+  try {
+    const r = await fetch(`./${CONFIG.path}?t=${Date.now()}`, {cache:'no-store'}); if (!r.ok) return false;
+    const raw = await r.json();
+    if (onlyIfNewer && remoteAt && (raw.updatedAt || '') <= remoteAt) return false;
+    remote = normalize(raw); remoteAt = raw.updatedAt || ''; S = withPending(remote); saveCache(); scheduleRender();
+    return true;
+  } catch (e) { return false; }
+}
+async function pull(quiet){
+  if (storeMode !== 'github') return;
+  try {
+    const {data, sha, at} = await fetchRemote();
+    remote = data; remoteSha = sha; remoteAt = at; S = withPending(remote); saveCache(); scheduleRender();
+    setSync(pending.size ? 'dirty' : 'ok');
+  } catch (e) {
+    await pullPublished(true); // sin API (p. ej. límite de GitHub): usamos el archivo publicado si es más nuevo
+    setSync('error', e.code === 'bad_token' ? 'El token de GitHub no es válido. Revísalo en Ajustes.' : e.code === 'gh_limit' ? 'GitHub limita las consultas sin token. Prueba en unos minutos o añade un token en Ajustes.' : 'No se ha podido leer data.json de GitHub.');
+    if (!quiet) say('Domingas', sync.msg);
+  }
+}
+function schedulePush(){ clearTimeout(pushTimer); pushTimer = setTimeout(push, 1200); }
+async function push(){
+  if (storeMode !== 'github' || !pending.size) return;
+  if (!ghToken()){ setSync('dirty', 'Hay cambios guardados solo en este navegador. Abre el enlace de invitación del club para poder subirlos.'); return; }
+  if (pushing){ pushAgain = true; return; }
+  pushing = true; setSync('saving');
+  try {
+    for (let attempt = 0; attempt < 3; attempt++){
+      const sent = new Map(pending);
+      const {data, sha} = await fetchRemote();
+      const base = data, merged = {}; for (const c of COLS) merged[c] = {...base[c]};
+      for (const op of sent.values()){ if (op.data == null) delete merged[op.col][op.id]; else merged[op.col][op.id] = op.data; }
+      const doc = {version:1, club:'Domingas', updatedAt:new Date().toISOString(), ...merged};
+      const res = await fetch(apiURL(), {method:'PUT', headers:{...ghHeaders(), 'Content-Type':'application/json'},
+        body:JSON.stringify({message:`Domingas: actualización ${new Date().toLocaleString('es-ES')}`, content:b64encode(JSON.stringify(doc, null, 2) + '\n'), branch:CONFIG.branch, ...(sha ? {sha} : {})})});
+      // Conflicto: otra persona guardó, o GitHub aún nos devuelve la versión anterior. Esperamos un poco y reintentamos.
+      if (res.status === 409 || res.status === 422){ await new Promise(r => setTimeout(r, 1500 * (attempt + 1))); continue; }
+      if (res.status === 401 || res.status === 403){ throw {code:res.status === 401 ? 'bad_token' : 'no_perm'}; }
+      if (!res.ok) throw {code:'gh_error'};
+      const j = await res.json();
+      remote = merged; remoteSha = j.content && j.content.sha || null; remoteAt = doc.updatedAt; retryDelay = 0;
+      for (const [k, op] of sent) if (pending.get(k) === op) pending.delete(k);
+      S = withPending(remote); saveCache(); scheduleRender();
+      setSync(pending.size ? 'dirty' : 'ok');
+      return;
+    }
+    throw {code:'conflict'};
+  } catch (e) {
+    const msg = e.code === 'bad_token' ? 'El token de GitHub no es válido o ha caducado. Revísalo en Ajustes.'
+      : e.code === 'no_perm' ? 'El token no tiene permiso para escribir en el repositorio. Dale "Contents: Read and write".'
+      : e.code === 'conflict' ? 'Alguien estaba guardando a la vez. Tus cambios siguen aquí; se volverá a intentar.'
+      : 'No se ha podido guardar en GitHub. Tus cambios siguen en este navegador y se subirán al reintentar.';
+    const fatal = e.code === 'bad_token' || e.code === 'no_perm', first = !retryDelay;
+    setSync('error', msg);
+    if (fatal || first) say('Domingas', msg); // no repetimos el aviso en cada reintento
+    if (!fatal){ retryDelay = Math.min(60000, retryDelay ? retryDelay * 2 : 5000); clearTimeout(pushTimer); pushTimer = setTimeout(push, retryDelay); }
+  } finally {
+    pushing = false;
+    if (pushAgain){ pushAgain = false; schedulePush(); }
+  }
+}
+async function write(col, id, data){
+  S[col][id] = data; pending.set(col + '/' + id, {col, id, data});
+  saveCache(); scheduleRender(); setSync('dirty'); schedulePush();
+}
+async function remove(col, id){
+  delete S[col][id]; pending.set(col + '/' + id, {col, id, data:null});
+  saveCache(); scheduleRender(); setSync('dirty'); schedulePush();
+}
+async function initStore(){
+  loadCache(); scheduleRender();
+  if (storeMode === 'github'){ await pull(true); if (pending.size) schedulePush(); }
+  else { await pullPublished(false); setSync('local'); }
+  setTimeout(greet, 300);
+  if (storeMode !== 'github') return;
+  // Al volver a la pestaña, al recuperar la conexión y cada minuto (cada 5 sin token): sube lo pendiente o trae lo nuevo.
+  const refresh = () => { if (document.visibilityState !== 'visible' || pushing) return; if (pending.size){ if (ghToken()) push(); } else pull(true); };
+  let ticks = 0;
+  setInterval(() => { ticks++; if (ghToken() || ticks % 5 === 0) refresh(); }, 60000);
+  document.addEventListener('visibilitychange', refresh);
+  window.addEventListener('online', refresh);
+  // Mientras alguien espera la nota de un doble en "Jugar", se mira más a menudo (cada 30 s; 90 s sin token, por el límite de GitHub).
+  let waitTicks = 0;
+  setInterval(() => {
+    if (view.name !== 'play' || !playMember || !playBook || guess(playBook, playMember)) return;
+    if (++waitTicks % (ghToken() ? 2 : 6) === 0 && !pending.size) refresh();
+  }, 15000);
+}
+function exportJSON(){
+  const doc = {version:1, club:'Domingas', updatedAt:new Date().toISOString(), ...S};
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(doc, null, 2) + '\n'], {type:'application/json'}));
+  a.download = 'data.json'; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+async function importJSON(file){
+  const data = normalize(JSON.parse(await file.text()));
+  for (const c of COLS){
+    for (const id of Object.keys(S[c])) if (!(id in data[c])) pending.set(c + '/' + id, {col:c, id, data:null});
+    for (const [id, d] of Object.entries(data[c])) pending.set(c + '/' + id, {col:c, id, data:d});
+  }
+  S = withPending(remote); saveCache(); scheduleRender(); setSync('dirty'); schedulePush();
+}
+
+/* ---------- Gemini (API de Google) ---------- */
+async function askLLM(prompt, signal){
+  const key = apiKey(); if (!key) throw {code:'no_key'};
+  let res;
+  try {
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(CONFIG.model)}:generateContent`, {method:'POST', signal,
+      headers:{'content-type':'application/json', 'x-goog-api-key':key},
+      body:JSON.stringify({contents:[{role:'user', parts:[{text:prompt}]}], generationConfig:{responseMimeType:'application/json', maxOutputTokens:2048}})});
+  } catch (e) { throw {code:e && e.name === 'AbortError' ? 'cancelled' : 'network'}; }
+  let j = {}; try { j = await res.json(); } catch (e) {}
+  if (!res.ok){
+    const msg = (j.error && j.error.message) || '';
+    if (res.status === 429) throw {code:'rate_limited'};
+    if (res.status === 401 || res.status === 403 || /api key/i.test(msg)) throw {code:'bad_key'};
+    throw {code:res.status >= 500 ? 'overloaded' : 'upstream_error'};
+  }
+  const c = (j.candidates || [])[0];
+  const text = ((c && c.content && c.content.parts) || []).map(p => p.text || '').join('');
+  const a = text.indexOf('{'), b = text.lastIndexOf('}');
+  if (a < 0 || b < a) throw {code:'invalid_json'};
+  try { return JSON.parse(text.slice(a, b + 1)); } catch (e) { throw {code:'invalid_json'}; }
+}
+function errCopy(e){
+  const c = e && e.code;
+  if (c === 'no_key') return 'Para preguntar al momento, añade tu clave de la API de Gemini en Menú, Ajustes.';
+  if (c === 'bad_key') return 'La clave de Gemini no es válida. Revísala en Menú, Ajustes.';
+  if (c === 'overloaded') return 'Gemini está saturado ahora mismo. Prueba otra vez en un rato.';
+  if (c === 'rate_limited') return 'Demasiadas preguntas seguidas o se ha acabado el cupo de Gemini. Espera un poco y vuelve a intentarlo.';
+  if (c === 'invalid_json') return 'La respuesta del doble llegó incompleta. Prueba otra vez.';
+  if (c === 'network') return 'No se ha podido contactar con Gemini. Revisa la conexión.';
+  return 'Gemini no ha podido contestar ahora. Inténtalo otra vez.';
+}
+
+/* ---------- derived ---------- */
+const members = () => Object.entries(S.members).map(([id, m]) => ({id, ...m})).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
+const bookKey = b => b.date || (b.month ? b.month + '-01' : '');
+const books = () => Object.entries(S.books).map(([id, b]) => ({id, ...b})).sort((a, b) => bookKey(b).localeCompare(bookKey(a)) || (b.at || 0) - (a.at || 0));
+const real = (b, m) => S.ratings[rKey(b, m)];
+const guess = (b, m) => S.personas[rKey(b, m)];
+const scored = x => x && isNum(x.score);
+function bookStats(bid){
+  const ms = members();
+  const r = ms.map(m => real(bid, m.id)).filter(scored).map(x => x.score);
+  const p = ms.map(m => guess(bid, m.id)).filter(scored).map(x => x.score);
+  return {real:avg(r), persona:avg(p), nReal:r.length, nPersona:p.length};
+}
+function twinStats(mid){
+  const pairs = [];
+  for (const b of books()){ const r = real(b.id, mid), g = guess(b.id, mid); if (scored(r) && scored(g)) pairs.push({book:b, r:r.score, g:g.score, d:Math.abs(r.score - g.score)}); }
+  const err = avg(pairs.map(p => p.d));
+  return {pairs, err, pct:err == null ? null : Math.round(100 * (1 - err / 9))};
+}
+function aboutMember(m){
+  if (m.bio) return m.bio;
+  return [m.age ? `Tengo ${m.age} años.` : '', m.likes ? `Busco en un libro: ${m.likes}.` : '', m.favs ? `Mis favoritos: ${m.favs}.` : '', m.notes || ''].filter(Boolean).join(' ');
+}
+
+/* ---------- navigation ---------- */
+let view = {name:'home'}, selMember = null, asking = new Set();
+let rateDraft = null, regBook = null, regEdit = null, playBook = null, playMember = null;
+const FORM_VIEWS = ['addBook', 'member', 'settings'];
+function modeFor(n){ return n === 'home' ? 'home' : n === 'registry' ? 'full' : 'split'; }
+function go(name, arg){
+  view = {name, arg};
+  $('.lcd').dataset.mode = modeFor(name);
+  closeDrawer();
+  renderPanel(true);
+  $('#view').scrollTop = 0;
+  if (name === 'home') greet();
+}
+let renderQueued = false, dirty = false;
+function scheduleRender(){ if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; renderAll(); }); }
+function editing(){ if (pickerClose) return true; const a = document.activeElement; return a && $('.panel').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName); }
+function renderAll(){ syncSprites(); renderPanel(false); if (!$('#drawer').hidden) renderDrawer(); }
+function renderPanel(force){
+  if (view.name === 'home') return;
+  if (!force){ if (FORM_VIEWS.includes(view.name)) return; if (editing()){ dirty = true; return; } }
+  dirty = false;
+  const bar = $('#bar'), el = $('#view'), keep = el.scrollTop; bar.innerHTML = ''; el.innerHTML = '';
+  const top = (label, to = 'home', text = '‹ Inicio') => bar.append(h('button', {class:'ghost', onclick:() => to === 'home' ? leave() : go(to)}, text), h('span', {class:'title'}, label));
+  switch (view.name){
+    case 'addBook': top('Nuevo libro'); addBookView(el); break;
+    case 'rate': top('Notas', 'home', '‹ Salir'); rateView(el); break;
+    case 'registry': registryBar(bar); registryView(el); break;
+    case 'members': top('Miembros'); membersView(el); break;
+    case 'member': top(view.arg ? 'Editar perfil' : 'Nuevo miembro', 'members', '‹ Volver'); memberForm(el, view.arg); break;
+    case 'play': top('Jugar a los dobles'); playView(el); break;
+    case 'settings': top('Ajustes'); settingsView(el); break;
+  }
+  el.scrollTop = keep; // al redibujar no saltamos arriba (go() ya pone 0 al cambiar de pantalla)
+}
+$('.panel').addEventListener('focusout', () => setTimeout(() => { if (dirty && !editing()) renderPanel(false); }, 0));
+let leaveArmed = false;
+function leave(){
+  if (view.name === 'rate' && rateDraft && rateDraft.dirty && !leaveArmed){
+    leaveArmed = true; say('Domingas', 'Tienes notas sin guardar. Toca "Salir" otra vez para salir igualmente. El libro ya está guardado.'); return;
+  }
+  leaveArmed = false; rateDraft = null; go('home');
+}
+
+function greet(){
+  if (view.name !== 'home') return;
+  if (joinedNow){ joinedNow = false; say('Domingas', '¡Ya estás en el club! Ya puedes añadir libros y poner notas desde este navegador.'); return; }
+  const ms = members(), last = books()[0];
+  if (!ms.length) say('Domingas', 'Hola, Domingas. Antes de nada, añadid a los miembros desde el menú de arriba a la derecha.');
+  else if (!last) say('Domingas', `Ya sois ${ms.length}. Cuando terminéis el primer libro, pulsad "Añadir libro".`);
+  else { const st = bookStats(last.id); say('Domingas', `Último libro: “${last.title}”.` + (st.real != null ? ` Media del club: ${fmt(st.real)}.` : ' Aún sin notas.')); }
+}
+
+/* ---------- drawer ---------- */
+function openDrawer(){ renderDrawer(); $('#scrim').hidden = false; $('#drawer').hidden = false; $('#drawerClose').focus(); }
+function closeDrawer(){ $('#scrim').hidden = true; $('#drawer').hidden = true; }
+function renderDrawer(){
+  const el = $('#drawerMenu'); el.innerHTML = '';
+  const bs = books(), ms = members();
+  el.append(
+    h('button', {onclick:() => { regBook = bs[0] ? bs[0].id : null; regEdit = null; go('registry'); }}, h('b', {}, 'Registro'), h('span', {}, bs.length ? `${plural(bs.length, 'libro', 'libros')}. Notas, cambios y borrados.` : 'Aún no hay libros.')),
+    h('button', {onclick:() => go('members')}, h('b', {}, 'Miembros'), h('span', {}, `${plural(ms.length, 'miembro', 'miembros')}. Añadir o editar perfiles.`)));
+  if (view.name !== 'home') el.append(h('button', {onclick:() => leave()}, h('b', {}, 'Inicio'), h('span', {}, 'Volver a la sala.')));
+  el.append(h('button', {onclick:() => go('settings')}, h('b', {}, 'Ajustes'), h('span', {}, syncLine())));
+}
+function syncLine(){
+  if (storeMode === 'local') return 'Guardando en este navegador. Publica en GitHub Pages para compartir.';
+  if (sync.state === 'saving') return 'Guardando en GitHub…';
+  if (sync.state === 'error') return sync.msg;
+  if (pending.size) return `${plural(pending.size, 'cambio', 'cambios')} sin subir a GitHub.` + (ghToken() ? '' : ' Abre el enlace de invitación del club para poder guardar.');
+  if (sync.state === 'loading') return 'Cargando data.json…';
+  return `Todo guardado en ${CONFIG.owner}/${CONFIG.repo}.`;
+}
+function settingsView(el){
+  const status = h('p', {class:'card', id:'syncStatus'}, syncLine());
+  el.append(h('span', {class:'lbl', style:'margin-top:0'}, 'Guardado'), status);
+  if (storeMode === 'github'){
+    const tok = h('input', {type:'password', autocomplete:'off', placeholder:ghToken() ? 'Token guardado en este navegador' : 'github_pat_…', 'aria-label':'Token de GitHub'});
+    if (ghToken()){
+      const out = h('input', {readonly:true, 'aria-label':'Enlace de invitación', style:'display:none'});
+      el.append(h('span', {class:'lbl'}, 'Invitar al club'),
+        h('p', {class:'note', style:'margin:0 0 8px'}, 'Quien abra este enlace podrá guardar desde su navegador, sin configurar nada. Compártelo solo por privado: da acceso a editar el club.'),
+        h('div', {class:'row'}, h('button', {class:'btn primary', onclick:async e => {
+          const link = inviteLink(), b = e.currentTarget;
+          try { await navigator.clipboard.writeText(link); b.textContent = 'Enlace copiado'; } catch (x) { out.style.display = ''; out.value = link; out.select(); b.textContent = 'Cópialo de aquí abajo'; }
+        }}, 'Copiar enlace de invitación')), out);
+    } else el.append(h('p', {class:'card'}, 'Para poder guardar, abre el enlace de invitación que te haya pasado alguien del club.'));
+    el.append(h('label', {class:'f'}, 'Token de GitHub (para guardar)'),
+      h('p', {class:'note', style:'margin:0 0 6px'}, 'Lo pone quien administra el club: un token "fine-grained" solo para este repositorio con permiso Contents: Read and write. Se guarda únicamente en este navegador.'),
+      tok, h('div', {class:'row', style:'margin-top:10px'},
+        h('button', {class:'btn primary', onclick:() => { const v = tok.value.trim(); if (!v) return; LS.set('domingas-gh-token', v); say('Domingas', 'Token guardado.'); pull(true).then(() => schedulePush()); renderPanel(true); }}, 'Guardar token'),
+        ghToken() ? h('button', {class:'btn', onclick:() => { LS.set('domingas-gh-token', null); renderPanel(true); }}, 'Quitar') : null,
+        h('button', {class:'btn', onclick:() => pull(false).then(() => renderPanel(true))}, 'Actualizar')));
+  }
+  const key = h('input', {type:'password', autocomplete:'off', placeholder:apiKey() ? 'Clave guardada en este navegador' : 'AIza…', 'aria-label':'Clave de la API de Gemini'});
+  el.append(h('label', {class:'f', style:'margin-top:24px'}, 'Clave de la API de Gemini (opcional)'),
+    h('p', {class:'note', style:'margin:0 0 6px'}, 'No hace falta: los dobles piensan solos en GitHub. Con una clave, además puedes preguntarles al momento desde este navegador.'),
+    key, h('div', {class:'row', style:'margin-top:10px'},
+      h('button', {class:'btn primary', onclick:() => { const v = key.value.trim(); if (!v) return; LS.set('domingas-gemini-key', v); say('Domingas', 'Clave de Gemini guardada.'); renderPanel(true); }}, 'Guardar clave'),
+      apiKey() ? h('button', {class:'btn', onclick:() => { LS.set('domingas-gemini-key', null); renderPanel(true); }}, 'Quitar') : null));
+  const file = h('input', {type:'file', accept:'application/json,.json', style:'display:none'});
+  let armed = null;
+  file.addEventListener('change', async () => { const f = file.files[0]; if (!f) return; try { await importJSON(f); say('Domingas', 'Datos importados.'); } catch (e) { say('Domingas', 'Ese archivo no parece un data.json válido.'); } });
+  el.append(h('span', {class:'lbl', style:'margin-top:28px'}, 'Copia de seguridad'),
+    h('p', {class:'note', style:'margin:0 0 8px'}, 'Descarga todos los datos como data.json, o sustituye los datos actuales por los de un archivo.'),
+    h('div', {class:'row'}, h('button', {class:'btn', onclick:exportJSON}, 'Descargar JSON'),
+      armed = h('button', {class:'btn', onclick:() => { if (armed.dataset.sure){ file.click(); delete armed.dataset.sure; armed.textContent = 'Importar JSON'; } else { armed.dataset.sure = '1'; armed.textContent = 'Sustituirá todo. Toca otra vez'; } }}, 'Importar JSON')), file);
+}
+$('#menuBtn').addEventListener('click', openDrawer);
+$('#drawerClose').addEventListener('click', closeDrawer);
+$('#scrim').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#drawer').hidden) closeDrawer(); });
+$('#addBookBtn').addEventListener('click', () => go('addBook'));
+$('#playBtn').addEventListener('click', () => { playBook = playBook && S.books[playBook] ? playBook : (books()[0] || {}).id || null; go('play'); });
+
+/* ---------- add a book ---------- */
+function addBookView(el){
+  const t = h('input', {id:'bTitle', maxlength:'120', required:true});
+  const a = h('input', {id:'bAuthor', maxlength:'80'});
+  const ab = h('textarea', {id:'bAbout', maxlength:'600', placeholder:'De qué va, en dos o tres frases. Ayuda a los dobles con libros menos conocidos.', style:'min-height:110px'});
+  el.append(h('form', {autocomplete:'off', onsubmit:async e => {
+    e.preventDefault(); const title = t.value.trim(); if (!title) return;
+    const id = newId('b'), date = today();
+    try { await write('books', id, {title, author:a.value.trim(), about:ab.value.trim(), date, month:date.slice(0, 7), at:Date.now()}); } catch (x) { return; }
+    say(title, `“${title}” guardado. Ahora, las notas.`);
+    startRating(id);
+  }},
+    h('label', {class:'f', for:'bTitle', style:'margin-top:0'}, 'Título'), t,
+    h('label', {class:'f', for:'bAuthor'}, 'Autor o autora'), a,
+    h('label', {class:'f', for:'bAbout'}, 'Sinopsis'), ab,
+    h('p', {class:'note', style:'margin-top:10px'}, `Se guardará con la fecha de hoy, ${dateLabel({date:today()})}.`),
+    h('p', {style:'margin-top:18px'}, h('button', {class:'btn primary', type:'submit'}, 'Guardar libro'))));
+  requestAnimationFrame(() => t.focus());
+}
+
+/* ---------- rate a book ---------- */
+function startRating(bid){
+  const scores = {};
+  for (const m of members()){ const r = real(bid, m.id); scores[m.id] = scored(r) ? r.score : null; }
+  rateDraft = {bookId:bid, scores, dirty:false};
+  go('rate');
+}
+function tenRow(value, onPick, small, label){
+  const g = h('div', {class:'ten' + (small ? ' small' : ''), role:'group', 'aria-label':label});
+  for (let i = 1; i <= 10; i++) g.append(h('button', {type:'button', 'aria-pressed':String(value === i), onclick:() => onPick(value === i ? null : i)}, i));
+  return g;
+}
+function rateView(el){
+  const d = rateDraft, b = d && S.books[d.bookId];
+  if (!b){ go('home'); return; }
+  el.append(h('p', {class:'big-title'}, b.title), h('p', {class:'muted'}, [b.author, dateLabel(b)].filter(Boolean).join(', ')));
+  const ms = members();
+  if (!ms.length){ el.append(h('p', {}, 'Aún no hay miembros. Añádelos desde el menú y vuelve a poner las notas en el Registro.')); return; }
+  for (const m of ms){
+    el.append(h('div', {class:'rrow'}, h('div', {class:'nm'}, h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}), h('span', {}, m.name)),
+      tenRow(d.scores[m.id], v => { d.scores[m.id] = v; d.dirty = true; leaveArmed = false; selMember = m.id;
+        const sp = sprites[m.id]; if (sp && v){ sp.bubble = 'num'; sp.num = v; sp.bubbleUntil = performance.now() + 4000; sp.jumpUntil = performance.now() + 600; }
+        renderPanel(true); }, true, `Nota de ${m.name}`)));
+  }
+  const n = Object.values(d.scores).filter(isNum).length;
+  el.append(h('div', {class:'sticky row'}, h('button', {class:'btn primary', onclick:saveRating}, 'Guardar notas'), h('span', {class:'muted'}, `${n} de ${ms.length}`)));
+}
+async function saveScores(bid, scores){
+  for (const [mid, score] of Object.entries(scores)){
+    const r = real(bid, mid), prev = scored(r) ? r.score : null;
+    if (prev === score) continue;
+    await write('ratings', rKey(bid, mid), {bookId:bid, memberId:mid, score, comment:(r && r.comment) || '', at:Date.now()});
+  }
+}
+async function saveRating(){
+  const d = rateDraft; if (!d) return;
+  try { await saveScores(d.bookId, d.scores); } catch (e) { return; }
+  const st = bookStats(d.bookId), b = S.books[d.bookId];
+  rateDraft = null; leaveArmed = false;
+  go('home');
+  say(b.title, `Notas guardadas.` + (st.real != null ? ` Media del club: ${fmt(st.real)}.` : ''));
+}
+
+/* ---------- pixel dropdown ---------- */
+let pickerClose = null;
+function bookPicker(bs, value, onPick){
+  const cur = bs.find(b => b.id === value) || bs[0];
+  const wrap = h('div', {class:'pick-dd'});
+  const list = h('ul', {class:'dd-list', role:'listbox', 'aria-label':'Libros', tabindex:'-1', hidden:true});
+  const btn = h('button', {type:'button', class:'dd-btn', 'aria-haspopup':'listbox', 'aria-expanded':'false'},
+    h('span', {class:'dd-t'}, cur ? cur.title : ''), h('span', {class:'dd-arrow', 'aria-hidden':'true'}, '▼'));
+  let idx = Math.max(0, bs.indexOf(cur));
+  const paint = () => [...list.children].forEach((li, i) => li.classList.toggle('active', i === idx));
+  const close = () => { list.hidden = true; btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('pointerdown', outside, true); pickerClose = null; if (dirty) setTimeout(() => renderPanel(false), 0); };
+  const outside = e => { if (!wrap.contains(e.target)) close(); };
+  const choose = i => { close(); const b = bs[i]; if (b && b.id !== value) onPick(b.id); else btn.focus(); };
+  const open = () => {
+    if (pickerClose) pickerClose();
+    list.hidden = false; btn.setAttribute('aria-expanded', 'true'); paint(); list.focus();
+    const a = list.children[idx]; if (a) a.scrollIntoView({block:'nearest'});
+    document.addEventListener('pointerdown', outside, true); pickerClose = close;
+  };
+  bs.forEach((b, i) => list.append(h('li', {role:'option', 'aria-selected':String(b.id === value), class:b.id === value ? 'on' : '',
+    onclick:() => choose(i), onpointerenter:() => { idx = i; paint(); }},
+    h('span', {class:'dd-mark', 'aria-hidden':'true'}, b.id === value ? '▶' : ''),
+    h('span', {class:'dd-body'}, h('span', {class:'dd-name'}, b.title), h('span', {class:'dd-sub'}, [b.author, dateLabel(b)].filter(Boolean).join(', '))))));
+  btn.addEventListener('click', () => list.hidden ? open() : close());
+  btn.addEventListener('keydown', e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp'){ e.preventDefault(); open(); } });
+  list.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown'){ e.preventDefault(); idx = Math.min(bs.length - 1, idx + 1); paint(); list.children[idx].scrollIntoView({block:'nearest'}); }
+    else if (e.key === 'ArrowUp'){ e.preventDefault(); idx = Math.max(0, idx - 1); paint(); list.children[idx].scrollIntoView({block:'nearest'}); }
+    else if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); choose(idx); }
+    else if (e.key === 'Escape' || e.key === 'Tab'){ e.preventDefault(); close(); btn.focus(); }
+  });
+  wrap.append(btn, list);
+  return wrap;
+}
+
+/* ---------- registry ---------- */
+function registryBar(bar){
+  const bs = books();
+  bar.append(h('button', {class:'ghost', onclick:() => { regEdit = null; go('home'); }}, '✕'));
+  if (bs.length){
+    if (!regBook || !S.books[regBook]) regBook = bs[0].id;
+    bar.append(bookPicker(bs, regBook, id => { regBook = id; regEdit = null; renderPanel(true); }));
+  } else bar.append(h('span', {class:'title'}, 'Registro'));
+}
+function registryView(el){
+  const b = regBook && S.books[regBook];
+  if (!b){ el.append(h('p', {}, 'El registro está vacío.'), h('button', {class:'btn primary', onclick:() => go('addBook')}, 'Añadir libro')); return; }
+  el.append(h('div', {class:'cover', role:'img', 'aria-label':`Portada: ${b.title}`},
+    h('span', {class:'t'}, b.title), b.author ? h('span', {class:'a'}, b.author) : null, h('span', {class:'d'}, `Domingas, ${dateLabel(b)}`)));
+  if (b.about) el.append(h('p', {class:'muted'}, b.about));
+  const st = bookStats(regBook), ms = members();
+  el.append(h('div', {class:'stats', style:'margin-top:14px'}, h('span', {}, `Club ${fmt(st.real)}`), h('span', {}, `Dobles ${fmt(st.persona)}`), h('span', {class:'muted'}, `${st.nReal} de ${ms.length} notas`)));
+  if (regEdit){
+    for (const m of ms){
+      el.append(h('div', {class:'rrow'}, h('div', {class:'nm'}, h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}), h('span', {}, m.name)),
+        tenRow(regEdit[m.id], v => { regEdit[m.id] = v; renderPanel(true); }, true, `Nota de ${m.name}`)));
+    }
+    el.append(h('div', {class:'sticky row'},
+      h('button', {class:'btn primary', onclick:async () => { try { await saveScores(regBook, regEdit); } catch (e) { return; } regEdit = null; renderPanel(true); say(b.title, 'Cambios guardados.'); }}, 'Guardar cambios'),
+      h('button', {class:'btn', onclick:() => { regEdit = null; renderPanel(true); }}, 'Cancelar')));
+    return;
+  }
+  el.append(h('div', {class:'heads', style:'margin-top:8px'}, h('span', {}, ''), h('span', {}, 'Nota'), h('span', {}, 'Doble')));
+  for (const m of ms){
+    const r = real(regBook, m.id), g = guess(regBook, m.id), hit = scored(r) && scored(g) && r.score === g.score;
+    el.append(h('div', {class:'mrow', style:'cursor:default'},
+      h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}), h('b', {}, m.name),
+      h('span', {class:'cell' + (scored(r) ? ' on' : ' empty') + (hit ? ' hit' : '')}, scored(r) ? r.score : '·'),
+      h('span', {class:'cell' + (scored(g) ? '' : ' empty')}, scored(g) ? g.score : '·')));
+  }
+  let sure = false;
+  const del = h('button', {class:'btn', onclick:async () => {
+    if (!sure){ sure = true; del.textContent = '¿Seguro? Toca otra vez'; return; }
+    const id = regBook, title = b.title;
+    for (const m of Object.keys(S.members)){ if (S.ratings[rKey(id, m)]) await remove('ratings', rKey(id, m)); if (S.personas[rKey(id, m)]) await remove('personas', rKey(id, m)); }
+    await remove('books', id); regBook = null; say('Domingas', `“${title}” borrado del registro.`); renderPanel(true);
+  }}, 'Borrar libro');
+  el.append(h('div', {class:'row', style:'margin-top:22px'},
+    h('button', {class:'btn primary', onclick:() => { regEdit = {}; for (const m of ms){ const r = real(regBook, m.id); regEdit[m.id] = scored(r) ? r.score : null; } renderPanel(true); }}, 'Editar notas'), del));
+}
+
+/* ---------- members ---------- */
+function membersView(el){
+  const ms = members();
+  el.append(h('p', {}, h('button', {class:'btn primary', onclick:() => go('member')}, 'Añadir miembro')));
+  if (!ms.length){ el.append(h('p', {class:'muted'}, 'Aún no hay miembros.')); return; }
+  const list = h('div', {class:'list'});
+  for (const m of ms){
+    list.append(h('button', {class:'item', onclick:() => { selMember = m.id; go('member', m.id); }},
+      h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}),
+      h('span', {class:'grow'}, h('b', {}, m.name), h('span', {class:'sub'}, (aboutMember(m) || 'Sin presentación todavía').slice(0, 80)))));
+  }
+  el.append(list);
+}
+const HAIRS = ['short','long','bun','pony','curly','spiky','cap','bald'], MARKS = ['none','collar','stripe','tie','logo','book'];
+const randomLook = () => ({hair:HAIRS[Math.floor(Math.random() * 8)], body:1 + Math.floor(Math.random() * 3), mark:MARKS[Math.floor(Math.random() * MARKS.length)], glasses:Math.random() < .3, beard:false, skin:Math.floor(Math.random() * 4), hc:Math.floor(Math.random() * 7), top:Math.floor(Math.random() * 8)});
+function memberForm(el, mid){
+  const m = mid ? S.members[mid] : null;
+  let look = m && m.look ? {...m.look} : randomLook();
+  const name = h('input', {id:'mName', maxlength:'24', required:true, value:m ? m.name : ''});
+  const bio = h('textarea', {id:'mBio', maxlength:'1200', style:'min-height:180px',
+    placeholder:'Tengo 41 años y leo sobre todo de noche. Me pierden las novelas largas con muchos personajes y no soporto los finales abiertos. Mi libro favorito es...'}, m ? aboutMember(m) : '');
+  const pv = h('canvas', {width:'14', height:'19', 'aria-label':'Tu avatar'});
+  const paint = () => { const c = pv.getContext('2d'); c.fillStyle = '#ecd9b0'; c.fillRect(0, 0, 14, 19); drawSprite(c, look, 3, 2, 0); };
+  paint();
+  const note = h('p', {class:'note', style:'margin-top:10px'});
+  let sure = false;
+  const del = m ? h('button', {class:'btn', type:'button', onclick:async () => {
+    if (!sure){ sure = true; del.textContent = 'Toca otra vez para eliminar'; return; }
+    for (const b of Object.keys(S.books)){ if (S.ratings[rKey(b, mid)]) await remove('ratings', rKey(b, mid)); if (S.personas[rKey(b, mid)]) await remove('personas', rKey(b, mid)); }
+    await remove('members', mid); say('Domingas', `${m.name} ya no está en el club.`); go('members');
+  }}, 'Eliminar') : null;
+  el.append(h('form', {autocomplete:'off', onsubmit:async e => {
+    e.preventDefault();
+    const nm = name.value.trim().replace(/\s+/g, ' '); if (!nm) return;
+    if (members().find(x => x.name.toLowerCase() === nm.toLowerCase() && x.id !== mid)){ note.textContent = `Ya hay alguien que se llama ${nm}.`; return; }
+    const id = mid || newId('m');
+    try { await write('members', id, {name:nm, bio:bio.value.trim(), look, at:(m && m.at) || Date.now()}); } catch (x) { return; }
+    if (!mid){ say(nm, `${nm} entra en la sala. Ya es parte de Domingas.`); setTimeout(() => { const sp = sprites[id]; if (sp){ sp.bubble = 'hi'; sp.bubbleUntil = performance.now() + 3000; } }, 150); }
+    else say(nm, `Perfil de ${nm} guardado.`);
+    go('members');
+  }},
+    h('label', {class:'f', for:'mName', style:'margin-top:0'}, 'Nombre'), name,
+    h('label', {class:'f', for:'mBio'}, 'Preséntate'),
+    h('p', {class:'note', style:'margin:0 0 6px'}, 'Imagina que es una primera cita: ¿cómo te presentarías? Qué te gusta leer, qué no soportas, tus libros favoritos, cómo y cuándo lees. Todo lo que ayude a conocerte.'),
+    bio,
+    h('span', {class:'lbl'}, 'Tu avatar'),
+    h('div', {class:'row'}, pv, h('button', {class:'btn', type:'button', onclick:() => { look = randomLook(); paint(); }}, 'Otro avatar')),
+    h('div', {class:'row', style:'margin-top:22px'}, h('button', {class:'btn primary', type:'submit'}, m ? 'Guardar' : 'Añadir'), del),
+    note));
+  pv.style.cssText = 'width:70px;height:95px;image-rendering:pixelated;border:3px solid var(--c0)';
+}
+
+/* ---------- play the doubles ---------- */
+function playView(el){
+  const bs = books(), ms = members();
+  if (!bs.length || !ms.length){ el.append(h('p', {}, !ms.length ? 'Primero añade a los miembros desde el menú.' : 'Primero añade un libro.')); return; }
+  if (!playBook || !S.books[playBook]) playBook = bs[0].id;
+  el.append(h('p', {}, 'Elige un libro y a alguien del club para ver qué diría su doble.'));
+  el.append(h('span', {class:'lbl', style:'margin-top:4px'}, 'El libro'),
+    bookPicker(bs, playBook, id => { playBook = id; renderPanel(true); }));
+  el.append(h('span', {class:'lbl'}, '¿De quién?'));
+  el.append(h('div', {class:'pick'}, ms.map(m => h('button', {'aria-pressed':String(playMember === m.id), onclick:() => { playMember = m.id; selMember = m.id; renderPanel(true); }},
+    h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}), m.name))));
+  const m = playMember && S.members[playMember] ? {id:playMember, ...S.members[playMember]} : null;
+  if (m){
+    const g = guess(playBook, m.id), r = real(playBook, m.id);
+    const box = h('div', {class:'double', style:'margin-top:18px'});
+    box.append(h('span', {class:'lbl', style:'margin-top:0'}, `El doble de ${m.name}`));
+    if (asking.has(m.id)) box.append(h('p', {class:'muted', style:'margin:0 0 10px', 'data-ask':m.id}, askStatus(m.id)),
+      h('button', {class:'btn', onclick:() => { const c = askCtl[m.id]; if (c) c.abort(); }}, 'Cancelar'));
+    else if (!g){
+      if (apiKey()) box.append(h('button', {class:'btn primary', onclick:() => askPersona(m.id, playBook)}, `¿Qué diría ${m.name}?`));
+      else box.append(h('p', {class:'muted', style:'margin:0'}, storeMode === 'github' && (!remote.books[playBook] || !remote.members[m.id])
+        ? 'El doble empezará a pensar en cuanto el libro esté guardado en GitHub.'
+        : 'El doble está pensando… Su nota aparecerá aquí en un par de minutos.'));
+    }
+    else {
+      box.append(h('div', {class:'split'}, h('span', {class:'big'}, `${g.score}/10`),
+        scored(r) ? h('span', {class:'badge' + (g.score === r.score ? ' hit' : '')}, g.score === r.score ? '¡Clavado!' : `Real: ${r.score}`) : h('span', {class:'note'}, 'Sin nota real aún')));
+      if (g.comment) box.append(h('q', {}, g.comment));
+      // Con la nota real ya puesta, la apuesta del doble queda fijada (si no, se podría repetir hasta acertar).
+      box.append(scored(r) ? h('p', {class:'note', style:'margin:12px 0 0'}, 'Apuesta cerrada: ya hay nota real.')
+        : apiKey() ? h('p', {style:'margin:12px 0 0'}, h('button', {class:'btn', onclick:() => askPersona(m.id, playBook)}, 'Preguntar otra vez')) : null);
+    }
+    el.append(box);
+  }
+  const rows = ms.map(x => ({m:x, ...twinStats(x.id)})).filter(x => x.pct != null).sort((a, b) => b.pct - a.pct);
+  if (rows.length){
+    el.append(h('span', {class:'lbl', style:'margin-top:28px'}, '¿Quién se parece más a su doble?'));
+    rows.forEach((x, i) => el.append(h('div', {class:'rank'}, h('span', {class:'pos'}, String(i + 1)), h('img', {class:'avatar', alt:'', src:avatarURL(x.m.look)}),
+      h('div', {}, h('div', {}, x.m.name), h('div', {class:'note'}, `Falla por ${fmt(x.err)} de media en ${plural(x.pairs.length, 'libro', 'libros')}.`)),
+      h('span', {class:'pct'}, `${x.pct}%`))));
+  }
+}
+function personaPrompt(m, b){
+  const past = books().filter(x => x.id !== b.id).reverse();
+  const hist = past.map(x => { const r = real(x.id, m.id); if (!r || (!scored(r) && !r.comment)) return null;
+    return `- "${x.title}"${x.author ? ' by ' + x.author : ''}: gave ${scored(r) ? r.score + '/10' : 'no score'}${r.comment ? `. Said: "${r.comment}"` : ''}`; }).filter(Boolean);
+  const calib = past.map(x => { const r = real(x.id, m.id), g = guess(x.id, m.id);
+    return scored(r) && scored(g) ? `- "${x.title}": you guessed ${g.score}, the real ${m.name} gave ${r.score}` : null; }).filter(Boolean);
+  return `You are the "double" of ${m.name}, a member of Domingas, a monthly book club in Spain. Predict how the real ${m.name} would rate a book the club read.
+
+HOW ${m.name.toUpperCase()} INTRODUCES THEMSELVES
+${aboutMember(m) || '(no introduction yet)'}
+
+THEIR REAL RATINGS OF OTHER CLUB BOOKS (oldest first)
+${hist.length ? hist.join('\n') : '(none yet)'}
+
+YOUR PAST GUESSES VERSUS REALITY
+${calib.length ? calib.join('\n') + '\nLearn from these misses: if you tend to be too generous or too harsh, correct for it. When their real ratings disagree with how they describe themselves, trust the real ratings.' : '(no track record yet)'}
+
+THE BOOK
+"${b.title}"${b.author ? ' by ' + b.author : ''}${b.about ? `\nSynopsis: ${b.about}` : ''}
+
+Assume ${m.name} finished it. Give the score they would actually give, using the 1 to 10 range the way they do. Then write what they'd say about it at the meeting, in their own voice, in Spanish from Spain.
+
+Reply with ONLY a JSON object, no prose and no code fences:
+{"score":7,"comment":"first person, in Spanish, max 45 words"}`;
+}
+const askCtl = {}, askStart = {};
+async function askPersona(mid, bid){
+  if (!mid || !bid || !S.members[mid] || !S.books[bid] || asking.has(mid)) return;
+  if (guess(bid, mid) && scored(real(bid, mid))) return; // apuesta cerrada
+  const m = S.members[mid], b = {id:bid, ...S.books[bid]};
+  if (!apiKey()){ say(m.name, errCopy({code:'no_key'})); return; }
+  const redraw = () => { if (view.name === 'play') renderPanel(true); }; // no tocar otros formularios abiertos
+  asking.add(mid); askStart[mid] = Date.now(); redraw();
+  const ctl = new AbortController(); askCtl[mid] = ctl;
+  const sp = sprites[mid]; if (sp){ sp.bubble = 'ask'; sp.bubbleUntil = performance.now() + 300000; }
+  say(`Doble de ${m.name}`, 'Pensando…');
+  try {
+    const out = await askLLM(personaPrompt(m, b), ctl.signal);
+    const score = clamp(Math.round(Number(out && out.score)) || 5, 1, 10);
+    const comment = String(out && out.comment || '').trim().slice(0, 320);
+    await write('personas', rKey(bid, mid), {bookId:bid, memberId:mid, score, comment, at:Date.now()});
+    if (sp){ sp.bubble = 'num'; sp.num = score; sp.bubbleUntil = performance.now() + 5000; sp.jumpUntil = performance.now() + 600; }
+    const r = real(bid, mid);
+    say(`Doble de ${m.name}`, `“${comment}”\nLe pondría un ${score}.` + (scored(r) ? ` ${m.name} le puso un ${r.score}.` : ''));
+  } catch (e) {
+    if (sp) sp.bubbleUntil = 0;
+    say(`Doble de ${m.name}`, e && e.code === 'cancelled' ? 'Pregunta cancelada.' : errCopy(e));
+  } finally { asking.delete(mid); delete askCtl[mid]; redraw(); }
+}
+function askStatus(mid){
+  const secs = Math.floor((Date.now() - (askStart[mid] || Date.now())) / 1000);
+  return secs >= 25 ? `Pensando… ${secs} s. Está tardando: puedes cancelar y probar otra vez.` : `Pensando… ${secs} s`;
+}
+function tickAsk(){ document.querySelectorAll('[data-ask]').forEach(el => { el.textContent = askStatus(el.dataset.ask); }); }
+setInterval(tickAsk, 1000);
+
+/* ---------- dialog ---------- */
+const dWho = $('#dWho'), dTxt = $('#dTxt');
+let typeTimer = null;
+function say(who, text){
+  clearInterval(typeTimer); dWho.textContent = who;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){ dTxt.textContent = text; return; }
+  let i = 0; dTxt.textContent = '';
+  typeTimer = setInterval(() => { i += 2; dTxt.textContent = text.slice(0, i); dTxt.scrollTop = dTxt.scrollHeight; if (i >= text.length) clearInterval(typeTimer); }, 20);
+}
+
+/* ---------- sprites ---------- */
+const INK = '#2e2640';
+const SKINS = ['#f8dcc0', '#ecc09a', '#c98f66', '#8e5b3d'];
+const HAIRC = ['#3a2a3a', '#6b3f26', '#b0602e', '#e8c464', '#c9c4d4', '#e27aa0', '#5a4a9a'];
+const TOPC = ['#e0585a', '#5a82dc', '#56aa62', '#9a6ad0', '#f09a44', '#f08cb0', '#48b0b4', '#e8c040'];
+function mix(hex, to, a){
+  const p = x => parseInt(x, 16), h2 = n => Math.round(n).toString(16).padStart(2, '0');
+  const c = [p(hex.slice(1, 3)), p(hex.slice(3, 5)), p(hex.slice(5, 7))], t = [p(to.slice(1, 3)), p(to.slice(3, 5)), p(to.slice(5, 7))];
+  return '#' + c.map((v, i) => h2(v + (t[i] - v) * a)).join('');
+}
+const light = (c, a = .45) => mix(c, '#ffffff', a), dark = (c, a = .3) => mix(c, '#1a1426', a);
+function lookColors(L){
+  let x = 5; for (const ch of JSON.stringify({h:L.hair, b:L.body, m:L.mark, g:L.glasses})) x = (x * 33 + ch.charCodeAt(0)) >>> 0;
+  return {
+    skin:SKINS[L.skin != null ? L.skin % SKINS.length : x % SKINS.length],
+    hair:HAIRC[L.hc != null ? L.hc % HAIRC.length : (x >> 4) % HAIRC.length],
+    top:TOPC[L.top != null ? L.top % TOPC.length : ((x >> 8) + (L.body || 0)) % TOPC.length],
+  };
+}
+const HAIR_SHAPES = {
+  bun:{front:[[3,0,2,2],[0,2,8,2]]},
+  spiky:{front:[[1,0,1,2],[3,-1,1,3],[5,0,1,2],[0,2,8,2]]},
+  pony:{back:[[7,3,3,5]], front:[[0,1,8,3]]},
+  short:{front:[[0,2,8,2],[0,4,1,2],[7,4,1,2]]},
+  long:{back:[[-1,3,2,8],[7,3,2,8]], front:[[0,1,8,3]]},
+  cap:{front:[[0,1,8,3],[6,3,4,1]], hat:true},
+  curly:{front:[[-1,1,10,3],[-1,4,2,2],[7,4,2,2]], curl:true},
+  bald:{front:[]},
+};
+function drawSprite(c, L, ox, oy, f){
+  L = L || {hair:'short', body:1, mark:'none'};
+  const K = lookColors(L), r = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(ox + x, oy + y, w, h); };
+  const S0 = HAIR_SHAPES[L.hair] || HAIR_SHAPES.short, back = S0.back || [], front = S0.front || [];
+  const hairCol = S0.hat ? TOPC[(TOPC.indexOf(K.top) + 3) % TOPC.length] : K.hair;
+  for (const [x, y, w, h] of [...back, ...front]) r(x - 1, y - 1, w + 2, h + 2, INK);
+  for (const [x, y, w, h] of back) r(x, y, w, h, K.hair);
+  r(0, 2, 8, 8, INK); r(1, 3, 6, 6, K.skin);
+  for (const [x, y, w, h] of front) r(x, y, w, h, hairCol);
+  if (S0.hat){ r(0, 3, 6, 1, dark(hairCol)); }
+  if (S0.curl){ r(1, 1, 1, 1, dark(K.hair)); r(4, 2, 1, 1, dark(K.hair)); r(6, 1, 1, 1, light(K.hair, .3)); }
+  if (L.hair === 'bald') r(2, 3, 2, 1, light(K.skin, .5));
+  if (L.glasses){ r(1, 5, 6, 1, INK); r(2, 5, 1, 1, '#c8e8fc'); r(5, 5, 1, 1, '#c8e8fc'); }
+  else { r(2, 5, 1, 1, INK); r(5, 5, 1, 1, INK); }
+  r(1, 6, 1, 1, '#f4a0b8'); r(6, 6, 1, 1, '#f4a0b8');
+  if (L.beard){ r(1, 7, 6, 2, K.hair); r(3, 7, 2, 1, INK); } else r(3, 7, 2, 1, '#d85a6a');
+  const T = K.top;
+  r(0, 10, 8, 5, INK); r(1, 10, 6, 4, T);
+  r(3, 10, 2, 1, K.skin);
+  r(-1, 11, 1, 2, INK); r(8, 11, 1, 2, INK); r(0, 11, 1, 2, T); r(7, 11, 1, 2, T);
+  r(1, 11, 2, 1, light(T)); r(5, 11, 2, 1, light(T));
+  r(3, 12, 2, 1, dark(T, .35));
+  switch (L.mark){
+    case 'collar': r(2, 10, 1, 1, '#fbf5e4'); r(5, 10, 1, 1, '#fbf5e4'); break;
+    case 'cross': r(3, 13, 2, 1, '#fbf5e4'); break;
+    case 'logo': r(3, 13, 2, 1, '#f4d25c'); break;
+    case 'stripe': r(1, 13, 6, 1, light(T, .6)); break;
+    case 'tie': r(1, 13, 6, 1, INK); r(3, 13, 2, 1, '#f4d25c'); break;
+    case 'book': r(-3, 12, 3, 3, INK); r(-2, 13, 1, 1, '#e05050'); break;
+  }
+  const LEG = '#4a4270';
+  if (f){ r(2, 15, 2, 2, LEG); r(4, 15, 2, 2, LEG); r(2, 16, 4, 1, INK); } else { r(1, 15, 2, 2, LEG); r(5, 15, 2, 2, LEG); r(1, 16, 2, 1, INK); r(5, 16, 2, 1, INK); }
+}
+function avatarURL(look){
+  const key = JSON.stringify(look || {});
+  if (avatarCache[key]) return avatarCache[key];
+  const c = document.createElement('canvas'); c.width = 14; c.height = 19;
+  const x = c.getContext('2d'); drawSprite(x, look, 3, 2, 0);
+  return (avatarCache[key] = c.toDataURL());
+}
+
+/* ---------- the club room ---------- */
+const world = $('#world'), cv = $('#cv'), ctx = cv.getContext('2d');
+let W = 180, H = 150, hz = 60, yMin = 72, yMax = 100;
+const sprites = {};
+const rx = () => 8 + Math.random() * (W - 28), ry = () => yMin + Math.random() * (yMax - yMin);
+function syncSprites(){
+  for (const id of Object.keys(S.members)) if (!sprites[id]){ const [x, y] = freeSpot(); sprites[id] = {x, y, tx:x, ty:y, idleAt:0, bubble:null, bubbleUntil:0, num:0, jumpUntil:0}; }
+  for (const id of Object.keys(sprites)) if (!S.members[id]) delete sprites[id];
+}
+function fit(){
+  const cw = world.clientWidth, ch = world.clientHeight; if (!cw || !ch) return;
+  const s = clamp(Math.floor(Math.min(cw / 200, ch / 120)), 2, 5);
+  W = Math.floor(cw / s); H = Math.floor(ch / s);
+  cv.width = W; cv.height = H;
+  cv.style.width = W * s + 'px'; cv.style.height = H * s + 'px';
+  const cTop = Math.floor((ch - H * s) / 2);
+  cv.style.left = Math.floor((cw - W * s) / 2) + 'px'; cv.style.top = cTop + 'px';
+  ctx.imageSmoothingEnabled = false;
+  let ym = Math.floor(($('.dialog').offsetTop - cTop) / s) - 4;
+  hz = Math.round(Math.min(H * 0.42, ym - 30, 74)); yMin = hz + 12; yMax = Math.max(yMin + 10, ym);
+  for (const p of Object.values(sprites)){ p.x = clamp(p.x, 8, W - 20); p.tx = clamp(p.tx, 8, W - 20); p.y = clamp(p.y, yMin, yMax); p.ty = clamp(p.ty, yMin, yMax); }
+}
+new ResizeObserver(fit).observe(world);
+const R = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); };
+const G = {
+  floor:'#ecd9b0', floorHi:'#f8f0dc', floorLo:'#dcc494',
+  wall:'#e6f0c8', wallLo:'#d6e4b0', wain:'#a898dc', wainHi:'#c8bcf0', wainLo:'#8474c4',
+  wood:'#d8a070', woodHi:'#f0c898', woodLo:'#a8683c', shelf:'#e0c49a',
+  green:'#58a850', greenHi:'#a0d868', cream:'#fbf5e4', rug:'#f4b8c8', rugLo:'#e08aa4',
+  lamp:'#f4d25c', chair:'#9080d0', chairHi:'#b8acec',
+};
+const SPINES = ['#e05050', '#5a82dc', '#56aa62', '#f4d25c', '#9a6ad0', '#f08cb0', '#48b0b4', '#f09a44'];
+const DIG = ['111101101101111','010110010010111','111001111100111','111001111001111','101101111001001','111100111001111','111100111101111','111001010010010','111101111101111','111101111001111'];
+function digits(n, x, y, c){ String(n).split('').forEach((d, i) => { const g = DIG[+d]; for (let k = 0; k < 15; k++) if (g[k] === '1') R(x + i * 4 + k % 3, y + (k / 3 | 0), 1, 1, c); }); }
+function shelf(x, y, w, hgt){
+  R(x, y, w, hgt, INK); R(x + 1, y + 1, w - 2, hgt - 2, G.shelf);
+  let row = 0;
+  for (let sy = y + 3; sy + 8 <= y + hgt - 2; sy += 10, row++){
+    R(x + 2, sy, w - 4, 7, dark(G.shelf, .45));
+    let bx = x + 3, i = row * 3;
+    while (bx < x + w - 5){
+      const bw = 2 + ((bx * 7 + sy * 3) % 2), bh = 5 + ((bx * 5 + sy) % 3), col = SPINES[(i++ * 5 + row) % SPINES.length];
+      R(bx, sy + 7 - bh, bw, bh, col); R(bx, sy + 7 - bh, bw, 1, light(col, .35)); bx += bw + 1;
+    }
+    R(x + 1, sy + 7, w - 2, 2, G.woodLo); R(x + 1, sy + 7, w - 2, 1, G.woodHi);
+  }
+}
+function tableBox(){
+  const w = Math.max(56, Math.round(W * 0.5));
+  const h = clamp(Math.round((yMax - yMin) * 0.45), 14, 54);
+  const y = yMin + 4 + Math.round((yMax - yMin - h) * 0.3);
+  return {x:Math.round((W - w) / 2), y, w, h};
+}
+function drawRoom(t){
+  const tick = Math.floor(t / 600);
+  // floor with diamond tiles
+  R(0, hz, W, H - hz, G.floor);
+  for (let ty = hz; ty < H; ty += 16) for (let tx = ((ty - hz) / 16) % 2 ? 8 : 0; tx < W; tx += 16){
+    const cx = tx + 8, cy = ty + 8;
+    for (let k = 0; k < 4; k++){ R(cx - k, cy - 3 + k, 1, 1, G.floorHi); R(cx + k, cy - 3 + k, 1, 1, G.floorHi); R(cx - k, cy + 3 - k, 1, 1, G.floorHi); R(cx + k, cy + 3 - k, 1, 1, G.floorHi); }
+    R(cx, cy, 1, 1, G.floorLo);
+  }
+  // wall
+  R(0, 0, W, hz, G.wall);
+  for (let x = 4; x < W; x += 8) R(x, 0, 2, hz - 10, G.wallLo);
+  R(0, hz - 12, W, 10, G.wain); R(0, hz - 12, W, 2, G.wainHi); R(0, hz - 4, W, 2, G.wainLo); R(0, hz - 2, W, 2, INK);
+  for (let x = 6; x < W; x += 14) R(x, hz - 9, 1, 4, G.wainLo);
+  const sw = Math.max(30, Math.round(W * 0.2));
+  shelf(6, 12, sw, hz - 12);
+  shelf(W - sw - 6, 12, sw, hz - 12);
+  for (const f of [0.36, 0.64]){
+    const x = Math.round(W * f), on = (tick + (f > .5 ? 2 : 0)) % 6;
+    R(x, 0, 1, 8, INK); R(x - 3, 8, 7, 4, INK); R(x - 2, 9, 5, 2, '#9a6ad0'); R(x - 2, 12, 5, 1, on ? G.lamp : light(G.lamp, .5));
+  }
+  // rug under the table
+  const tb = tableBox();
+  R(tb.x - 10, tb.y - 6, tb.w + 20, tb.h + 16, G.rugLo); R(tb.x - 8, tb.y - 4, tb.w + 16, tb.h + 12, G.rug);
+  for (let x = tb.x - 6; x < tb.x + tb.w + 6; x += 6){ R(x, tb.y - 2, 2, 1, G.cream); R(x + 3, tb.y + tb.h + 6, 2, 1, G.cream); }
+  // armchairs
+  const chair = (x, flip) => { R(x, hz - 8, 16, 13, INK); R(x + 1, hz - 7, 14, 6, G.chair); R(x + 2, hz - 6, 12, 1, G.chairHi);
+    R(x + (flip ? 11 : 1), hz - 1, 4, 5, G.chair); R(x + (flip ? 1 : 5), hz, 10, 3, G.chairHi); R(x + 2, hz + 5, 2, 2, INK); R(x + 12, hz + 5, 2, 2, INK); };
+  chair(4, false); chair(W - 20, true);
+  // plant
+  const px = Math.round(W * 0.06) + sw + 2;
+  R(px, hz - 2, 9, 8, INK); R(px + 1, hz - 1, 7, 6, '#9a6ad0'); R(px + 1, hz - 1, 7, 1, '#b89ae4');
+  for (const [lx, ly, lw] of [[-3, -12, 6], [4, -14, 6], [0, -18, 5], [-1, -8, 4], [6, -9, 5]]){ R(px + lx, hz + ly, lw, 3, INK); R(px + lx + 1, hz + ly + 1, lw - 2, 1, G.greenHi); }
+  R(px + 4, hz - 12, 1, 10, G.green);
+  // floor lamp
+  const lx = Math.round(W * 0.8) - sw + 4;
+  if (lx > W / 2 + 30){ R(lx, hz - 26, 9, 6, INK); R(lx + 1, hz - 25, 7, 4, (tick % 5) ? G.lamp : light(G.lamp, .5)); R(lx + 4, hz - 20, 1, 22, INK); R(lx + 1, hz + 2, 7, 2, INK); }
+}
+function inTable(x, y){ const b = tableBox(); return x + 8 > b.x - 3 && x < b.x + b.w + 3 && y > b.y + 1 && y < b.y + b.h + 14; }
+function freeSpot(nx, ny){
+  for (let i = 0; i < 14; i++){
+    const x = nx == null ? rx() : clamp(nx + Math.random() * 50 - 25, 8, W - 20);
+    const y = ny == null ? ry() : clamp(ny + Math.random() * 20 - 10, yMin, yMax);
+    if (!inTable(x, y)) return [x, y];
+  }
+  return [8 + Math.random() * 12, yMin];
+}
+function drawTable(b){
+  const {x, y, w, h} = b;
+  R(x + 3, y + h + 3, 3, 6, INK); R(x + w - 6, y + h + 3, 3, 6, INK); R(x + 4, y + h + 3, 1, 5, G.woodLo); R(x + w - 5, y + h + 3, 1, 5, G.woodLo);
+  R(x, y, w, h, INK); R(x + 1, y + 1, w - 2, h - 2, G.wood); R(x + 1, y + 1, w - 2, 1, G.woodHi);
+  for (let yy = y + 5; yy < y + h - 3; yy += 5) for (let xx = x + 5 + ((yy - y) % 10 ? 7 : 0); xx < x + w - 12; xx += 20) R(xx, yy, 9, 1, G.woodHi);
+  R(x, y + h, w, 3, INK); R(x + 1, y + h, w - 2, 2, G.woodLo);
+  const cup = (cx, cy, col) => { R(cx, cy, 5, 5, INK); R(cx + 1, cy + 1, 3, 3, col); R(cx + 2, cy + 2, 1, 1, '#8a5a3a'); R(cx + 5, cy + 1, 1, 2, INK); };
+  const bx = x + Math.round(w * 0.14), by = y + Math.round(h * 0.28);
+  R(bx - 1, by - 1, 19, 12, INK); R(bx, by, 17, 10, '#e05050'); R(bx + 1, by + 1, 7, 8, G.cream); R(bx + 9, by + 1, 7, 8, G.cream); R(bx + 8, by, 1, 10, INK);
+  for (let k = 0; k < 3; k++){ R(bx + 2, by + 3 + k * 2, 5, 1, G.floorLo); R(bx + 10, by + 3 + k * 2, 5, 1, G.floorLo); }
+  const sx = x + Math.round(w * 0.66), sy = y + Math.round(h * 0.55);
+  R(sx - 1, sy - 5, 16, 10, INK); R(sx, sy, 14, 4, '#5a82dc'); R(sx, sy, 14, 1, light('#5a82dc', .4)); R(sx + 1, sy - 4, 12, 4, '#f4d25c'); R(sx + 1, sy - 4, 12, 1, light('#f4d25c', .4)); R(sx + 11, sy - 4, 1, 8, G.cream);
+  const vx = x + Math.round(w / 2) - 2, vy = y + Math.round(h * 0.45);
+  R(vx - 1, vy - 1, 7, 8, INK); R(vx, vy, 5, 6, '#48b0b4'); R(vx + 1, vy + 1, 1, 4, light('#48b0b4', .5));
+  for (const [fx, fy, col] of [[-3, -4, '#e05050'], [1, -6, '#f4d25c'], [5, -4, '#f08cb0']]){ R(vx + fx, vy + fy, 3, 3, INK); R(vx + fx + 1, vy + fy + 1, 1, 1, col); }
+  cup(x + Math.round(w * 0.36), y + Math.round(h * 0.62), '#fbf5e4');
+  cup(x + Math.round(w * 0.82), y + Math.round(h * 0.2), '#f08cb0');
+  cup(x + Math.round(w * 0.08), y + Math.round(h * 0.7), '#c8e8fc');
+}
+function drawMember(id, p, t){
+  const m = S.members[id]; if (!m) return;
+  const moving = Math.hypot(p.tx - p.x, p.ty - p.y) > 0.6;
+  const f = moving ? Math.floor(t / 140) % 2 : 0;
+  const ox = Math.round(p.x); let oy = Math.round(p.y) - 17;
+  if (p.jumpUntil > t) oy -= Math.round(Math.abs(Math.sin(t / 90)) * 3);
+  R(ox, Math.round(p.y), 8, 1, G.floorLo);
+  drawSprite(ctx, m.look, ox, oy, f);
+  if (p.bubble && p.bubbleUntil > t){
+    const n = String(p.num);
+    const bw = p.bubble === 'num' ? n.length * 4 + 3 : 9, bx = ox + 7, by = oy - 11;
+    R(bx, by, bw, 9, INK); R(bx + 1, by + 1, bw - 2, 7, '#ffffff'); R(bx + 1, by + 8, 2, 2, INK);
+    if (p.bubble === 'num') digits(n, bx + 2, by + 2, '#9a3a6a');
+    else if (p.bubble === 'ask'){ R(bx + 3, by + 2, 3, 1, INK); R(bx + 5, by + 3, 1, 1, INK); R(bx + 4, by + 4, 1, 1, INK); R(bx + 4, by + 6, 1, 1, INK); }
+    else if (p.bubble === 'dot'){ R(bx + 2, by + 4, 1, 1, INK); R(bx + 4, by + 4, 1, 1, INK); R(bx + 6, by + 4, 1, 1, INK); }
+    else { R(bx + 4, by + 2, 1, 3, '#e05050'); R(bx + 4, by + 6, 1, 1, '#e05050'); }
+  }
+  if (selMember === id && Math.floor(t / 450) % 2){ R(ox + 1, oy - 7, 6, 1, INK); R(ox + 2, oy - 6, 4, 1, '#e05050'); R(ox + 3, oy - 5, 2, 1, INK); }
+}
+function frame(t){
+  for (const p of Object.values(sprites)){
+    const dx = p.tx - p.x, dy = p.ty - p.y, d = Math.hypot(dx, dy);
+    if (d > 0.6){ const s = Math.min(0.45, d); p.x += dx / d * s; p.y += dy / d * s; }
+    else if (t > p.idleAt){ [p.tx, p.ty] = Math.random() < 0.3 ? freeSpot() : freeSpot(p.x, p.y); p.idleAt = t + 3000 + Math.random() * 5000; }
+  }
+  drawRoom(t);
+  const tb = tableBox(), list = Object.entries(sprites).sort((a, b) => a[1].y - b[1].y);
+  list.filter(([, p]) => p.y <= tb.y + 3).forEach(([id, p]) => drawMember(id, p, t));
+  drawTable(tb);
+  list.filter(([, p]) => p.y > tb.y + 3).forEach(([id, p]) => drawMember(id, p, t));
+  requestAnimationFrame(frame);
+}
+
+/* ---------- start ---------- */
+readPal();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readPal);
+fit(); renderAll();
+say('Domingas', 'Abriendo el club…');
+initStore();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

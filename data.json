@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "club": "Domingas",
+  "updatedAt": "2026-10-03T00:00:00Z",
+  "members": {
+    "m-muok3w0ff6xr": {
+      "at": 1790800042191,
+      "bio": "Tengo 26 años. Busco en un libro: To teach me something, philosophical and tough. Mis favoritos: Demian, In cold blood. I don't like love",
+      "look": {
+        "beard": false,
+        "body": 1,
+        "glasses": true,
+        "hair": "spiky",
+        "hc": 1,
+        "mark": "tie",
+        "skin": 0,
+        "top": 0
+      },
+      "name": "Johnn"
+    }
+  },
+  "books": {
+    "b-muok5av1w0zy": {
+      "about": "I Who Have Never Known Men by Belgian author Jacqueline Harpman is a post-apocalyptic dystopian novel about 39 imprisoned women and one young girl living in an underground cage guarded by silent men.",
+      "at": 1790800108093,
+      "author": "Jacqueline Harpman",
+      "month": "2026-09",
+      "title": "I Who Have Never Known Men"
+    },
+    "b-muolwmjv1hw2": {
+      "about": "De la guerra civil",
+      "at": 1790803062571,
+      "author": "Almudena Grandes",
+      "date": "2026-09-30",
+      "month": "2026-09",
+      "title": "El lector de Julio Verne"
+    }
+  },
+  "ratings": {
+    "b-muok5av1w0zy~m-muok3w0ff6xr": {
+      "at": 1790800122224,
+      "bookId": "b-muok5av1w0zy",
+      "comment": "",
+      "memberId": "m-muok3w0ff6xr",
+      "score": 10
+    },
+    "b-muolwmjv1hw2~m-muok3w0ff6xr": {
+      "at": 1790803083432,
+      "bookId": "b-muolwmjv1hw2",
+      "comment": "",
+      "memberId": "m-muok3w0ff6xr",
+      "score": 6
+    }
+  },
+  "personas": {
+    "b-muok5av1w0zy~m-muok3w0ff6xr": {
+      "at": 1790800135345,
+      "bookId": "b-muok5av1w0zy",
+      "comment": "Bleak, existential, no romance to roll my eyes at. The narrator's detachment and the unanswered mysteries hit harder than answers would. Reminded me of Demian's isolation, honestly. Philosophical without being pretentious about it.",
+      "memberId": "m-muok3w0ff6xr",
+      "score": 8
+    },
+    "b-muolwmjv1hw2~m-muok3w0ff6xr": {
+      "at": 1790803399281,
+      "bookId": "b-muolwmjv1hw2",
+      "comment": "Grandes tira de filosofía y dureza histórica, eso me engancha. La Guerra Civil cruda, sin romantizar. Aunque a veces se va por derroteros sentimentales que no necesita. Buena exploración de cómo la literatura nos salva.",
+      "memberId": "m-muok3w0ff6xr",
+      "score": 7
+    }
+  }
+}

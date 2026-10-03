@@ -1,0 +1,31 @@
+# Domingas: los dobles piensan solos.
+# Cada vez que cambia data.json (un libro o un miembro nuevo), pide a Gemini la nota de los dobles que faltan
+# y la guarda en data.json. Necesita el secreto GEMINI_API_KEY (Settings → Secrets and variables → Actions).
+name: Dobles
+
+on:
+  push:
+    branches: [main]
+    paths: [data.json]
+  workflow_dispatch: # botón "Run workflow" en la pestaña Actions
+
+permissions:
+  contents: write # para guardar data.json
+
+concurrency:
+  group: doubles # una ejecución cada vez; las siguientes esperan
+  cancel-in-progress: false
+
+jobs:
+  guess:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Pensar las notas que faltan
+        run: node .github/doubles/doubles.mjs
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
