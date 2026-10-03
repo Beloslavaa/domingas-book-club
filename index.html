@@ -306,6 +306,8 @@ function loadCache(){
   S = withPending(remote);
 }
 function setSync(state, msg = ''){ sync = {state, msg}; const b = $('#menuBtn'); if (b) b.classList.toggle('dirty', pending.size > 0); const st = $('#syncStatus'); if (st) st.textContent = syncLine(); if (!$('#drawer').hidden) renderDrawer(); }
+// Firma de los commits: así no aparece el email de quien creó el token (todos guardan con el mismo).
+const CLUB_AUTHOR = {name:'Domingas', email:'domingas@users.noreply.github.com'};
 const apiURL = () => `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path.split('/').map(encodeURIComponent).join('/')}`;
 function ghHeaders(){ const h = {'Accept':'application/vnd.github+json', 'X-GitHub-Api-Version':'2022-11-28'}; const t = ghToken(); if (t) h.Authorization = 'Bearer ' + t; return h; }
 const b64decode = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g, '')), c => c.charCodeAt(0)));
@@ -357,7 +359,8 @@ async function push(){
       for (const op of sent.values()){ if (op.data == null) delete merged[op.col][op.id]; else merged[op.col][op.id] = op.data; }
       const doc = {version:1, club:'Domingas', updatedAt:new Date().toISOString(), ...merged};
       const res = await fetch(apiURL(), {method:'PUT', headers:{...ghHeaders(), 'Content-Type':'application/json'},
-        body:JSON.stringify({message:`Domingas: actualización ${new Date().toLocaleString('es-ES')}`, content:b64encode(JSON.stringify(doc, null, 2) + '\n'), branch:CONFIG.branch, ...(sha ? {sha} : {})})});
+        body:JSON.stringify({message:`Domingas: actualización ${new Date().toLocaleString('es-ES')}`, content:b64encode(JSON.stringify(doc, null, 2) + '\n'), branch:CONFIG.branch,
+          committer:CLUB_AUTHOR, author:CLUB_AUTHOR, ...(sha ? {sha} : {})})});
       // Conflicto: otra persona guardó, o GitHub aún nos devuelve la versión anterior. Esperamos un poco y reintentamos.
       if (res.status === 409 || res.status === 422){ await new Promise(r => setTimeout(r, 1500 * (attempt + 1))); continue; }
       if (res.status === 401 || res.status === 403){ throw {code:res.status === 401 ? 'bad_token' : 'no_perm'}; }
