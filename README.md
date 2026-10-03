@@ -18,7 +18,8 @@ Members join by opening an **invite link** once. After that they can add books a
 | `data.json` | The club's data: members, books, ratings and the doubles' guesses. |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are. |
 | `.github/workflows/doubles.yml` | The Action that runs the doubles when `data.json` changes. |
-| `.github/doubles/doubles.mjs` | The script it runs, including the prompt that tells Gemini how to play each member's double. |
+| `.github/doubles/doubles.mjs` | The script it runs. |
+| `prompt.js` | The prompt that tells Gemini how to play each double. The Action uses it for members, and the page uses it for guests. |
 
 ## Setup (about 15 minutes, done once by whoever runs the club)
 
@@ -39,7 +40,7 @@ Members join by opening an **invite link** once. After that they can add books a
 ## For members
 
 - **Open the invite link once** on each phone or computer you'll use. The page saves access in that browser and removes it from the address bar. From then on, just use the normal club address.
-- **Without the invite link** you're a guest. You see the club's books, but not its members or their scores. You can create a member for yourself and rate the books, but that's only for you: it's never saved, and it disappears when you close the tab. Guests can't add books or play the doubles game.
+- **Without the invite link** you're a guest. You see the club's books, but not its members or their scores. You can create a member for yourself and rate the books, but that's only for you: it's never saved, and it disappears when you close the tab. Guests can't add books. If the guest doubles are set up (see below), they can also ask their own double what they'd give each book; that isn't saved either.
 - **The doubles guess on their own** a minute or two after a book or member is added. Until then, "Jugar a los dobles" says the double is still thinking. The page checks for the guess regularly, so there's no need to reload.
 - **Each double guesses once per book.** Once a member's real score is in, their double's guess can't change.
 
@@ -57,6 +58,19 @@ Members join by opening an **invite link** once. After that they can add books a
 
 - **Custom domain:** if you don't use `*.github.io`, open `index.html`, find `const CONFIG` near the top of the script and fill in `owner` and `repo`. The branch and file name are also set there.
 - **Model and limits:** the doubles use `gemini-3.5-flash-lite`. Each run asks for at most 30 guesses, 4 seconds apart, to stay under the free tier's per-minute limit. All three can be changed at the top of `.github/doubles/doubles.mjs`. If Gemini says the limit is used up, the run stops, and whatever is missing is asked on the next run.
+
+## Doubles for guests (optional)
+
+Guests aren't saved, so the GitHub Action can't make their doubles. Instead the page asks Gemini directly, with a second key that is **visible to anyone** in the page source. That's only safe if the key can't cost money and only works from this site:
+
+1. In [Google AI Studio](https://aistudio.google.com/apikey), choose **Create API key → in a new project**. Don't add billing to that project, so it stays on the free tier and can never be charged. Keep it separate from the club's key.
+2. In [Google Cloud → Credentials](https://console.cloud.google.com/apis/credentials), select that new project and open the key:
+   - *Application restrictions:* **Websites**, then add `https://beloslavaa.github.io/*`.
+   - *API restrictions:* **Restrict key**, then pick **Generative Language API**.
+   - Save.
+3. Put the key in `guestKey` inside `const CONFIG` in `index.html`.
+
+If someone copies the key and uses up its free quota, guests see "se ha acabado su cupo de hoy" until the next day. The club's own doubles use the other key and keep working.
 
 ## Good to know
 

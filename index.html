@@ -219,6 +219,7 @@ label.f{display:block;margin:14px 0 4px;font-size:19px}
   <div class="split"><span class="px" style="font-size:11px">Domingas</span><button class="ghost" id="drawerClose" aria-label="Cerrar menú">✕</button></div>
   <div class="menu" id="drawerMenu"></div>
 </aside>
+<script src="prompt.js"></script>
 <script>
 (() => {
 const $ = s => document.querySelector(s);
@@ -262,6 +263,10 @@ const CONFIG = {
   repo: '',             // nombre del repositorio
   branch: 'main',       // rama donde está data.json
   path: 'data.json',    // archivo con los datos del club
+  // Dobles de los invitados (sin enlace de invitación): la página llama a Gemini directamente, así que esta clave es pública.
+  // Usa una clave aparte, de un proyecto de Google sin facturación y restringida a esta web. Vacía = sin dobles para invitados.
+  guestKey: '',
+  guestModel: 'gemini-3.5-flash-lite',
 };
 (() => {
   const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
@@ -289,9 +294,10 @@ const SS = {
   get(k){ try { return sessionStorage.getItem(k); } catch (e) { return null; } },
   set(k, v){ try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} },
 };
-let guest = (() => { try { const g = JSON.parse(SS.get('domingas-guest') || 'null'); if (g && g.members && g.ratings) return g; } catch (e) {} return {members:{}, ratings:{}}; })();
+let guest = (() => { try { const g = JSON.parse(SS.get('domingas-guest') || 'null'); if (g && g.members && g.ratings) return {personas:{}, ...g}; } catch (e) {} return {members:{}, ratings:{}, personas:{}}; })();
 const saveGuest = () => SS.set('domingas-guest', JSON.stringify(guest));
 const guestMemberId = () => Object.keys(guest.members)[0] || null;
+const guestDoubles = () => !!CONFIG.guestKey;
 const inviteLink = () => `${location.origin}${location.pathname}#club=${encodeURIComponent(ghToken())}`;
 
 /* ---------- store: data.json en GitHub ---------- */
@@ -302,7 +308,7 @@ let storeMode = CONFIG.owner && CONFIG.repo ? 'github' : 'local';
 let sync = {state:'loading', msg:''}, pushing = false, pushAgain = false, pushTimer = null, retryDelay = 0;
 const normalize = d => { const o = empty(); if (d && typeof d === 'object') for (const c of COLS) if (d[c] && typeof d[c] === 'object') o[c] = d[c]; return o; };
 function rebuild(){
-  if (isGuest()){ S = {books:{...remote.books}, members:{...guest.members}, ratings:{...guest.ratings}, personas:{}}; return; }
+  if (isGuest()){ S = {books:{...remote.books}, members:{...guest.members}, ratings:{...guest.ratings}, personas:{...guest.personas}}; return; }
   S = withPending(remote);
 }
 function withPending(base){
@@ -404,7 +410,7 @@ async function push(){
 const GUEST_NO = 'Sin invitación no se pueden añadir libros. Para eso, abre el enlace de invitación del club.';
 function guestWrite(col, id, data){
   if (col === 'members' && data && guestMemberId() && guestMemberId() !== id) throw {code:'guest_one'};
-  if (col !== 'members' && col !== 'ratings'){ say('Domingas', GUEST_NO); throw {code:'guest_no'}; }
+  if (col === 'books'){ say('Domingas', GUEST_NO); throw {code:'guest_no'}; }
   if (data == null) delete guest[col][id]; else guest[col][id] = data;
   saveGuest(); rebuild(); scheduleRender();
 }
@@ -498,7 +504,7 @@ function editing(){ if (pickerClose) return true; const a = document.activeEleme
 function renderAll(){
   syncSprites();
   const g = isGuest();
-  $('#addBookBtn').hidden = g; $('#playBtn').hidden = g; $('#guestBtn').hidden = !g;
+  $('#addBookBtn').hidden = g; $('#playBtn').hidden = g && !(guestDoubles() && guestMemberId()); $('#guestBtn').hidden = !g;
   $('#guestBtn').textContent = guestMemberId() ? 'Poner mis notas' : 'Crear mi miembro';
   renderPanel(false); if (!$('#drawer').hidden) renderDrawer(); }
 function renderPanel(force){
@@ -507,7 +513,7 @@ function renderPanel(force){
   dirty = false;
   const bar = $('#bar'), el = $('#view'), keep = el.scrollTop; bar.innerHTML = ''; el.innerHTML = '';
   const top = (label, to = 'home', text = '‹ Inicio') => bar.append(h('button', {class:'ghost', onclick:() => to === 'home' ? leave() : go(to)}, text), h('span', {class:'title'}, label));
-  if (isGuest() && (view.name === 'addBook' || view.name === 'play' || view.name === 'rate')){ go('home'); return; }
+  if (isGuest() && (view.name === 'addBook' || view.name === 'rate' || (view.name === 'play' && !(guestDoubles() && guestMemberId())))){ go('home'); return; }
   switch (view.name){
     case 'addBook': top('Nuevo libro'); addBookView(el); break;
     case 'rate': top('Notas', 'home', '‹ Salir'); rateView(el); break;
@@ -534,7 +540,7 @@ function greet(){
   const ms = members(), last = books()[0];
   if (isGuest()){
     const me = guestMemberId() && S.members[guestMemberId()];
-    say('Domingas', me ? `Hola, ${me.name}. Pon tus notas a los libros del club desde "Poner mis notas". Es solo para ti: no se guarda.`
+    say('Domingas', me ? `Hola, ${me.name}. Pon tus notas a los libros del club desde "Poner mis notas"${guestDoubles() ? ' y mira qué diría tu doble' : ''}. Es solo para ti: no se guarda.`
       : `Hola. Puedes crear tu miembro y puntuar los libros que ha leído el club. Es solo para ti en esta pestaña: no se guarda.`);
     return;
   }
@@ -725,7 +731,7 @@ function registryView(el){
       h('button', {class:'btn', onclick:() => { regEdit = null; renderPanel(true); }}, 'Cancelar')));
     return;
   }
-  el.append(h('div', {class:'heads', style:'margin-top:8px'}, h('span', {}, ''), h('span', {}, 'Nota'), h('span', {}, isGuest() ? '' : 'Doble')));
+  el.append(h('div', {class:'heads', style:'margin-top:8px'}, h('span', {}, ''), h('span', {}, 'Nota'), h('span', {}, isGuest() && !guestDoubles() ? '' : 'Doble')));
   for (const m of ms){
     const r = real(regBook, m.id), g = guess(regBook, m.id), hit = scored(r) && scored(g) && r.score === g.score;
     el.append(h('div', {class:'mrow', style:'cursor:default'},
@@ -802,7 +808,8 @@ function playView(el){
   const bs = books(), ms = members();
   if (!bs.length || !ms.length){ el.append(h('p', {}, !ms.length ? 'Primero añade a los miembros desde el menú.' : 'Primero añade un libro.')); return; }
   if (!playBook || !S.books[playBook]) playBook = bs[0].id;
-  el.append(h('p', {}, 'Elige un libro y a alguien del club para ver qué diría su doble.'));
+  el.append(h('p', {}, isGuest() ? 'Elige un libro para ver qué diría tu doble. Pídeselo antes de poner tu nota, ¡a ver si acierta!' : 'Elige un libro y a alguien del club para ver qué diría su doble.'));
+  if (isGuest() && !playMember) playMember = guestMemberId();
   el.append(h('span', {class:'lbl', style:'margin-top:4px'}, 'El libro'),
     bookPicker(bs, playBook, id => { playBook = id; renderPanel(true); }));
   el.append(h('span', {class:'lbl'}, '¿De quién?'));
@@ -813,7 +820,11 @@ function playView(el){
     const g = guess(playBook, m.id), r = real(playBook, m.id);
     const box = h('div', {class:'double', style:'margin-top:18px'});
     box.append(h('span', {class:'lbl', style:'margin-top:0'}, `El doble de ${m.name}`));
-    if (!g) box.append(h('p', {class:'muted', style:'margin:0'}, storeMode === 'github' && (!remote.books[playBook] || !remote.members[m.id])
+    if (!g && isGuest()){
+      if (guestAsking) box.append(h('p', {class:'muted', style:'margin:0'}, 'Pensando…'));
+      else box.append(h('button', {class:'btn primary', onclick:() => askGuestDouble(m.id, playBook)}, '¿Qué diría tu doble?'));
+    }
+    else if (!g) box.append(h('p', {class:'muted', style:'margin:0'}, storeMode === 'github' && (!remote.books[playBook] || !remote.members[m.id])
       ? 'El doble empezará a pensar en cuanto el libro esté guardado en GitHub.'
       : 'El doble está pensando… Su nota aparecerá aquí en un par de minutos.'));
     else {
@@ -831,6 +842,36 @@ function playView(el){
       h('span', {class:'pct'}, `${x.pct}%`))));
   }
 }
+let guestAsking = false;
+async function askGuestDouble(mid, bid){
+  if (!isGuest() || !guestDoubles() || guestAsking || guess(bid, mid) || !S.members[mid] || !S.books[bid]) return;
+  const redraw = () => { if (view.name === 'play') renderPanel(true); };
+  guestAsking = true; redraw();
+  const sp = sprites[mid]; if (sp){ sp.bubble = 'dot'; sp.bubbleUntil = performance.now() + 60000; }
+  say('Tu doble', 'Pensando…');
+  try {
+    let res;
+    try {
+      res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(CONFIG.guestModel)}:generateContent`, {method:'POST',
+        headers:{'content-type':'application/json', 'x-goog-api-key':CONFIG.guestKey},
+        body:JSON.stringify({contents:[{role:'user', parts:[{text:DomingasPrompt.personaPrompt(S, mid, bid)}]}], generationConfig:{responseMimeType:'application/json', maxOutputTokens:2048}})});
+    } catch (e) { throw {code:'network'}; }
+    const j = await res.json().catch(() => ({}));
+    if (!res.ok) throw {code:res.status === 429 ? 'quota' : res.status >= 500 ? 'busy' : 'error'};
+    const c = (j.candidates || [])[0], text = ((c && c.content && c.content.parts) || []).map(p => p.text || '').join('');
+    let g; try { g = DomingasPrompt.parseReply(text); } catch (e) { throw {code:'error'}; }
+    await write('personas', rKey(bid, mid), {bookId:bid, memberId:mid, score:g.score, comment:g.comment, at:Date.now()});
+    if (sp){ sp.bubble = 'num'; sp.num = g.score; sp.bubbleUntil = performance.now() + 5000; sp.jumpUntil = performance.now() + 600; }
+    say('Tu doble', `“${g.comment}”\nLe pondría un ${g.score}.`);
+  } catch (e) {
+    if (sp) sp.bubbleUntil = 0;
+    say('Tu doble', e && e.code === 'quota' ? 'Los dobles de invitados están descansando: se ha acabado su cupo de hoy. Prueba mañana.'
+      : e && e.code === 'busy' ? 'Gemini está saturado ahora mismo. Prueba otra vez en un rato.'
+      : e && e.code === 'network' ? 'No se ha podido contactar con Gemini. Revisa la conexión.'
+      : 'Tu doble no ha podido contestar. Inténtalo otra vez.');
+  } finally { guestAsking = false; redraw(); }
+}
+
 /* ---------- dialog ---------- */
 const dWho = $('#dWho'), dTxt = $('#dTxt');
 let typeTimer = null;

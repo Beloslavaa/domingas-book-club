@@ -3,10 +3,12 @@
 // it asks Gemini what that member would give the book, and commits the guesses back to data.json.
 // The Gemini key lives in the repository secret GEMINI_API_KEY, so it is never on the web page.
 //
-// This is the only place the doubles' prompt lives (see personaPrompt below).
+// The prompt lives in prompt.js at the root of the repo, shared with the page (which uses it for guests).
 
 import {readFileSync, writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';
+import {createRequire} from 'node:module';
+const {personaPrompt, parseReply} = createRequire(import.meta.url)('../../prompt.js');
 
 const FILE = process.env.DATA_FILE || 'data.json';
 const BRANCH = process.env.BRANCH || 'main';
@@ -40,48 +42,6 @@ function view(d){
     guess: (b, m) => S.personas[rKey(b, m)],
   };
 }
-function aboutMember(m){
-  if (m.bio) return m.bio;
-  return [m.age ? `Tengo ${m.age} años.` : '', m.likes ? `Busco en un libro: ${m.likes}.` : '', m.favs ? `Mis favoritos: ${m.favs}.` : '', m.notes || ''].filter(Boolean).join(' ');
-}
-function personaPrompt(V, m, b){
-  const {books, real, guess} = V;
-  const past = books().filter(x => x.id !== b.id).reverse();
-  const hist = past.map(x => { const r = real(x.id, m.id); if (!r || (!scored(r) && !r.comment)) return null;
-    return `- "${x.title}"${x.author ? ' by ' + x.author : ''}: ${scored(r) ? r.score + '/10' : 'no score'}${r.comment ? `. Said: "${r.comment}"` : ''}`; }).filter(Boolean);
-  const calib = past.map(x => { const r = real(x.id, m.id), g = guess(x.id, m.id);
-    return scored(r) && scored(g) ? `- "${x.title}": you guessed ${g.score}, the real ${m.name} gave ${r.score}` : null; }).filter(Boolean);
-  const intro = aboutMember(m);
-  return `You're playing a game with Domingas, a monthly book club in Spain. Each member has a "double", and you are ${m.name}'s: you guess the score from 1 to 10 that ${m.name} would give the club's book, and what they'd say about it at the meeting. After the meeting the club compares your guess with ${m.name}'s real score, so getting the score right matters most. Your comment is read out loud to the group, so it should sound like a real person reacting to this particular book, not like a summary of ${m.name}'s profile.
-
-## What you know about ${m.name}
-
-How they described their reading taste when they joined the club. It's about their taste in general, written before this book:
-<introduction>
-${intro || '(no introduction yet)'}
-</introduction>
-
-Their real scores for other club books, oldest first:
-${hist.length ? hist.join('\n') : '(none yet)'}
-
-Your earlier guesses for ${m.name} next to their real scores:
-${calib.length ? calib.join('\n') : '(none yet)'}
-
-## The book
-
-"${b.title}"${b.author ? ` by ${b.author}` : ''}${b.about ? `\nClub synopsis: ${b.about}` : ''}
-The club's synopsis is often a single line. If you know this book, draw on what you know about it: its plot, characters, style, pacing, ending and how readers received it.
-
-## How to guess
-
-The score: real scores and comments are the best evidence of how ${m.name} judges books, so lean on them first and on the introduction second. If your earlier guesses ran consistently high or low, adjust for it. When there's no history yet, treat the introduction as a rough hint about taste rather than a rule: people often enjoy books outside their stated taste, and are often disappointed by books they "should" love. Use the whole range the way a real reader would; not every book is a 7 or 8.
-
-The comment: what ${m.name} would actually say about this book at the meeting, in Spanish from Spain, first person, casual spoken tone, at most 45 words. Talk about the book itself, for example a moment, a character, the writing, the ending, or how it made them feel. Let the introduction shape the opinion without showing up in the words: don't reuse its phrases, don't explain ${m.name}'s own taste ("como me encantan los clásicos…"), and don't mention their favourite books unless the comparison really comes up naturally. The comment should match the score: a 4 sounds disappointed, a 6 lukewarm, a 9 enthusiastic.
-
-Reply with only a JSON object, with no other text:
-{"score": <whole number from 1 to 10>, "comment": "<what they'd say>"}`;
-}
-
 /* ---------- ask Gemini ---------- */
 class GeminiError extends Error { constructor(code, msg){ super(msg || code); this.code = code; } }
 async function callGemini(prompt){
@@ -106,13 +66,7 @@ async function ask(prompt){
     try { text = await callGemini(prompt); break; }
     catch (e) { if (e.code !== 'rate_limited' || attempt >= 3) throw e; console.log('Límite por minuto de Gemini; esperando…'); await sleep(30000 * (attempt + 1)); }
   }
-  const a = text.indexOf('{'), b = text.lastIndexOf('}');
-  if (a < 0 || b < a) throw new Error('no JSON in reply');
-  const out = JSON.parse(text.slice(a, b + 1));
-  return {
-    score: Math.max(1, Math.min(10, Math.round(Number(out.score)) || 5)),
-    comment: String(out.comment || '').trim().slice(0, 320),
-  };
+  return parseReply(text);
 }
 
 async function main(){
@@ -131,13 +85,13 @@ async function main(){
   for (const b of V.books()) for (const m of V.members()) if (MODE === 'probar' || !V.guess(b.id, m.id) || redo(b, m)) todo.push({b, m});
   if (!todo.length){ console.log(MODE === 'rehacer-sin-nota' ? 'No hay notas que rehacer: todas las que hay tienen ya nota real o faltan por pedir.' : 'Todos los dobles tienen ya su nota.'); return; }
   console.log(`Modo ${MODE}: ${todo.length} ${MODE === 'probar' ? 'pruebas' : 'notas de dobles pendientes'}; esta vez se piden hasta ${MAX_PER_RUN}.`);
-  if (MODE === 'probar') console.log(`\n----- Prompt de ejemplo (${todo[0].m.name} · "${todo[0].b.title}") -----\n${personaPrompt(V, todo[0].m, todo[0].b)}\n-----\n`);
+  if (MODE === 'probar') console.log(`\n----- Prompt de ejemplo (${todo[0].m.name} · "${todo[0].b.title}") -----\n${personaPrompt(V.S, todo[0].m.id, todo[0].b.id)}\n-----\n`);
 
   const results = {};
   for (const [i, {b, m}] of todo.slice(0, MAX_PER_RUN).entries()){
     if (i) await sleep(PAUSE_MS);
     try {
-      const g = await ask(personaPrompt(V, m, b));
+      const g = await ask(personaPrompt(V.S, m.id, b.id));
       results[rKey(b.id, m.id)] = {bookId:b.id, memberId:m.id, score:g.score, comment:g.comment, at:Date.now()};
       if (MODE === 'probar'){
         const old = V.guess(b.id, m.id), r = V.real(b.id, m.id);
