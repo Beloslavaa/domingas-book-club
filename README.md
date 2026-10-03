@@ -17,6 +17,7 @@ Members join by opening an **invite link** once. After that they can add books a
 | `index.html` | The whole app (HTML, CSS and JavaScript in one file). |
 | `data.json` | The club's data: members, books, ratings and the doubles' guesses. |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are. |
+| `favicon.svg`, `favicon-32.png`, `apple-touch-icon.png` | The pixel book icon for browser tabs and phone home screens. |
 | `.github/workflows/doubles.yml` | The Action that runs the doubles when `data.json` changes. |
 | `.github/doubles/doubles.mjs` | The script it runs. |
 | `prompt.js` | The prompt that tells Gemini how to play each double. The Action uses it for members, and the page uses it for guests. |
