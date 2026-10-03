@@ -33,8 +33,8 @@ Members join by opening an **invite link** once. After that they can add books a
    - *GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token*.
    - *Repository access:* **Only select repositories**, then pick your Domingas repo.
    - *Permissions → Repository permissions → Contents:* **Read and write**. Nothing else.
-   - *Expiration:* up to a year. When it expires, create a new one and send a new invite link.
-5. **Invite the club:** open the club page, go to **Menú → Ajustes → Token de GitHub**, paste the token and tap **Guardar token**. Once saved, the field hides behind **Cambiar token**, which is also where you paste a renewed token. Then tap **Copiar enlace de invitación** and send that link privately to each member, for example in your WhatsApp group.
+   - *Expiration:* up to a year. When it expires, create a new one, open the club address with `#club=` and the new token on the end, and send everyone the new invite link from Ajustes.
+5. **Join and invite the club:** open `https://beloslavaa.github.io/domingas-book-club/#club=` followed by the token, on each of your own devices. Then go to **Menú → Ajustes**, tap **Copiar enlace de invitación** and send that link privately to each member, for example in your WhatsApp group.
 
 ## For members
 

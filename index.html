@@ -304,7 +304,7 @@ function loadCache(){
   try { const p = JSON.parse(LS.get('domingas-pending') || '[]'); for (const op of p) pending.set(op.col + '/' + op.id, op); } catch (e) {}
   S = withPending(remote);
 }
-function setSync(state, msg = ''){ sync = {state, msg}; const b = $('#menuBtn'); if (b) b.classList.toggle('dirty', pending.size > 0); const st = $('#syncStatus'); if (st) st.textContent = syncLine(); if (!$('#drawer').hidden) renderDrawer(); }
+function setSync(state, msg = ''){ sync = {state, msg}; const b = $('#menuBtn'); if (b) b.classList.toggle('dirty', pending.size > 0); if (!$('#drawer').hidden) renderDrawer(); }
 // Firma de los commits: así no aparece el email de quien creó el token (todos guardan con el mismo).
 const CLUB_AUTHOR = {name:'Domingas', email:'domingas@users.noreply.github.com'};
 const apiURL = () => `https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/contents/${CONFIG.path.split('/').map(encodeURIComponent).join('/')}`;
@@ -525,32 +525,20 @@ function syncLine(){
   if (sync.state === 'loading') return 'Cargando data.json…';
   return `Todo guardado en ${CONFIG.owner}/${CONFIG.repo}.`;
 }
-let showToken = false;
 function settingsView(el){
-  const status = h('p', {class:'card', id:'syncStatus'}, syncLine());
-  el.append(h('span', {class:'lbl', style:'margin-top:0'}, 'Guardado'), status);
+  // Sin invitación: solo cómo unirse (nada de token ni de copias de seguridad).
+  if (storeMode === 'github' && !ghToken()){
+    el.append(h('p', {class:'card', style:'margin-top:0'}, 'Para poder guardar, abre el enlace de invitación que te haya pasado alguien del club.'));
+    return;
+  }
   if (storeMode === 'github'){
-    el.append(h('div', {class:'row'}, h('button', {class:'btn', onclick:() => pull(false).then(() => renderPanel(true))}, 'Actualizar')));
-    if (ghToken()){
-      const out = h('input', {readonly:true, 'aria-label':'Enlace de invitación', style:'display:none'});
-      el.append(h('span', {class:'lbl', style:'margin-top:28px'}, 'Invitar al club'),
-        h('p', {class:'note', style:'margin:0 0 8px'}, 'Quien abra este enlace podrá guardar desde su navegador, sin configurar nada. Compártelo solo por privado: da acceso a editar el club.'),
-        h('div', {class:'row'}, h('button', {class:'btn primary', onclick:async e => {
-          const link = inviteLink(), b = e.currentTarget;
-          try { await navigator.clipboard.writeText(link); b.textContent = 'Enlace copiado'; } catch (x) { out.style.display = ''; out.value = link; out.select(); b.textContent = 'Cópialo de aquí abajo'; }
-        }}, 'Copiar enlace de invitación')), out);
-    } else el.append(h('p', {class:'card', style:'margin-top:18px'}, 'Para poder guardar, abre el enlace de invitación que te haya pasado alguien del club.'));
-    // El token solo lo toca quien administra el club (al empezar o al renovarlo); al resto no le hace falta verlo.
-    if (ghToken() && !showToken) el.append(h('p', {style:'margin:14px 0 0'}, h('button', {class:'ghost', style:'font-size:18px', onclick:() => { showToken = true; renderPanel(true); }}, 'Cambiar token')));
-    else {
-      const tok = h('input', {type:'password', autocomplete:'off', placeholder:'github_pat_…', 'aria-label':'Token de GitHub'});
-      el.append(h('label', {class:'f', style:'margin-top:24px'}, 'Token de GitHub (solo quien administra el club)'),
-        h('p', {class:'note', style:'margin:0 0 6px'}, 'Un token "fine-grained" solo para este repositorio con permiso Contents: Read and write. Se guarda únicamente en este navegador.'),
-        tok, h('div', {class:'row', style:'margin-top:10px'},
-          h('button', {class:'btn primary', onclick:() => { const v = tok.value.trim(); if (!v) return; LS.set('domingas-gh-token', v); showToken = false; say('Domingas', 'Token guardado.'); pull(true).then(() => schedulePush()); renderPanel(true); }}, 'Guardar token'),
-          ghToken() ? h('button', {class:'btn', onclick:() => { LS.set('domingas-gh-token', null); showToken = false; renderPanel(true); }}, 'Quitar de este navegador') : null,
-          ghToken() ? h('button', {class:'btn', onclick:() => { showToken = false; renderPanel(true); }}, 'Cancelar') : null));
-    }
+    const out = h('input', {readonly:true, 'aria-label':'Enlace de invitación', style:'display:none'});
+    el.append(h('span', {class:'lbl', style:'margin-top:0'}, 'Invitar al club'),
+      h('p', {class:'note', style:'margin:0 0 8px'}, 'Compártelo solo por privado.'),
+      h('div', {class:'row'}, h('button', {class:'btn primary', onclick:async e => {
+        const link = inviteLink(), b = e.currentTarget;
+        try { await navigator.clipboard.writeText(link); b.textContent = 'Enlace copiado'; } catch (x) { out.style.display = ''; out.value = link; out.select(); b.textContent = 'Cópialo de aquí abajo'; }
+      }}, 'Copiar enlace de invitación')), out);
   }
   const file = h('input', {type:'file', accept:'application/json,.json', style:'display:none'});
   let armed = null;
