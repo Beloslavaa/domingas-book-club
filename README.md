@@ -39,7 +39,7 @@ Members join by opening an **invite link** once. After that they can add books a
 ## For members
 
 - **Open the invite link once** on each phone or computer you'll use. The page saves access in that browser and removes it from the address bar. From then on, just use the normal club address.
-- **Without the invite link** you can still browse everything and see the doubles. Changes you make wait in your browser until you open the link.
+- **Without the invite link** you're a guest. You see the club's books, but not its members or their scores. You can create a member for yourself and rate the books, but that's only for you: it's never saved, and it disappears when you close the tab. Guests can't add books or play the doubles game.
 - **The doubles guess on their own** a minute or two after a book or member is added. Until then, "Jugar a los dobles" says the double is still thinking. The page checks for the guess regularly, so there's no need to reload.
 - **Each double guesses once per book.** Once a member's real score is in, their double's guess can't change.
 

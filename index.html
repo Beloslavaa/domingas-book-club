@@ -206,6 +206,7 @@ label.f{display:block;margin:14px 0 4px;font-size:19px}
     <div class="homebar">
       <button class="btn primary" id="addBookBtn">Añadir libro</button>
       <button class="btn" id="playBtn">Jugar a los dobles</button>
+      <button class="btn primary" id="guestBtn" hidden>Crear mi miembro</button>
     </div>
   </section>
   <section class="panel">
@@ -281,6 +282,16 @@ let joinedNow = false;
   try { LS.set('domingas-gh-token', decodeURIComponent(m[1])); joinedNow = true; } catch (e) {}
   history.replaceState(null, '', location.pathname + location.search);
 })();
+/* Invitados: quien abre la web sin enlace de invitación ve los libros del club (no los miembros ni sus notas),
+   puede crear un miembro para sí y puntuar los libros. Nada de eso se guarda en GitHub: vive solo en esta pestaña. */
+const isGuest = () => storeMode === 'github' && !ghToken();
+const SS = {
+  get(k){ try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v){ try { v == null ? sessionStorage.removeItem(k) : sessionStorage.setItem(k, v); } catch (e) {} },
+};
+let guest = (() => { try { const g = JSON.parse(SS.get('domingas-guest') || 'null'); if (g && g.members && g.ratings) return g; } catch (e) {} return {members:{}, ratings:{}}; })();
+const saveGuest = () => SS.set('domingas-guest', JSON.stringify(guest));
+const guestMemberId = () => Object.keys(guest.members)[0] || null;
 const inviteLink = () => `${location.origin}${location.pathname}#club=${encodeURIComponent(ghToken())}`;
 
 /* ---------- store: data.json en GitHub ---------- */
@@ -290,6 +301,10 @@ let S = empty(), remote = empty(), remoteSha = null, remoteAt = '', pending = ne
 let storeMode = CONFIG.owner && CONFIG.repo ? 'github' : 'local';
 let sync = {state:'loading', msg:''}, pushing = false, pushAgain = false, pushTimer = null, retryDelay = 0;
 const normalize = d => { const o = empty(); if (d && typeof d === 'object') for (const c of COLS) if (d[c] && typeof d[c] === 'object') o[c] = d[c]; return o; };
+function rebuild(){
+  if (isGuest()){ S = {books:{...remote.books}, members:{...guest.members}, ratings:{...guest.ratings}, personas:{}}; return; }
+  S = withPending(remote);
+}
 function withPending(base){
   const o = {}; for (const c of COLS) o[c] = {...base[c]};
   for (const op of pending.values()){ if (op.data == null) delete o[op.col][op.id]; else o[op.col][op.id] = op.data; }
@@ -302,7 +317,7 @@ function saveCache(){
 function loadCache(){
   try { const c = JSON.parse(LS.get('domingas-cache') || 'null'); if (c){ remote = normalize(c.remote); remoteSha = c.remoteSha || null; remoteAt = c.remoteAt || ''; } } catch (e) {}
   try { const p = JSON.parse(LS.get('domingas-pending') || '[]'); for (const op of p) pending.set(op.col + '/' + op.id, op); } catch (e) {}
-  S = withPending(remote);
+  rebuild();
 }
 function setSync(state, msg = ''){ sync = {state, msg}; const b = $('#menuBtn'); if (b) b.classList.toggle('dirty', pending.size > 0); if (!$('#drawer').hidden) renderDrawer(); }
 // Firma de los commits: así no aparece el email de quien creó el token (todos guardan con el mismo).
@@ -328,7 +343,7 @@ async function pullPublished(onlyIfNewer){
     const r = await fetch(`./${CONFIG.path}?t=${Date.now()}`, {cache:'no-store'}); if (!r.ok) return false;
     const raw = await r.json();
     if (onlyIfNewer && remoteAt && (raw.updatedAt || '') <= remoteAt) return false;
-    remote = normalize(raw); remoteAt = raw.updatedAt || ''; S = withPending(remote); saveCache(); scheduleRender();
+    remote = normalize(raw); remoteAt = raw.updatedAt || ''; rebuild(); saveCache(); scheduleRender();
     return true;
   } catch (e) { return false; }
 }
@@ -336,7 +351,7 @@ async function pull(quiet){
   if (storeMode !== 'github') return;
   try {
     const {data, sha, at} = await fetchRemote();
-    remote = data; remoteSha = sha; remoteAt = at; S = withPending(remote); saveCache(); scheduleRender();
+    remote = data; remoteSha = sha; remoteAt = at; rebuild(); saveCache(); scheduleRender();
     setSync(pending.size ? 'dirty' : 'ok');
   } catch (e) {
     await pullPublished(true); // sin API (p. ej. límite de GitHub): usamos el archivo publicado si es más nuevo
@@ -367,7 +382,7 @@ async function push(){
       const j = await res.json();
       remote = merged; remoteSha = j.content && j.content.sha || null; remoteAt = doc.updatedAt; retryDelay = 0;
       for (const [k, op] of sent) if (pending.get(k) === op) pending.delete(k);
-      S = withPending(remote); saveCache(); scheduleRender();
+      rebuild(); saveCache(); scheduleRender();
       setSync(pending.size ? 'dirty' : 'ok');
       return;
     }
@@ -386,16 +401,27 @@ async function push(){
     if (pushAgain){ pushAgain = false; schedulePush(); }
   }
 }
+const GUEST_NO = 'Sin invitación no se pueden añadir libros. Para eso, abre el enlace de invitación del club.';
+function guestWrite(col, id, data){
+  if (col === 'members' && data && guestMemberId() && guestMemberId() !== id) throw {code:'guest_one'};
+  if (col !== 'members' && col !== 'ratings'){ say('Domingas', GUEST_NO); throw {code:'guest_no'}; }
+  if (data == null) delete guest[col][id]; else guest[col][id] = data;
+  saveGuest(); rebuild(); scheduleRender();
+}
 async function write(col, id, data){
+  if (isGuest()) return guestWrite(col, id, data);
   S[col][id] = data; pending.set(col + '/' + id, {col, id, data});
   saveCache(); scheduleRender(); setSync('dirty'); schedulePush();
 }
 async function remove(col, id){
+  if (isGuest()) return guestWrite(col, id, null);
   delete S[col][id]; pending.set(col + '/' + id, {col, id, data:null});
   saveCache(); scheduleRender(); setSync('dirty'); schedulePush();
 }
 async function initStore(){
-  loadCache(); scheduleRender();
+  loadCache();
+  if (isGuest() && pending.size){ pending.clear(); saveCache(); rebuild(); }
+  scheduleRender();
   if (storeMode === 'github'){ await pull(true); if (pending.size) schedulePush(); }
   else { await pullPublished(false); setSync('local'); }
   setTimeout(greet, 300);
@@ -426,7 +452,7 @@ async function importJSON(file){
     for (const id of Object.keys(S[c])) if (!(id in data[c])) pending.set(c + '/' + id, {col:c, id, data:null});
     for (const [id, d] of Object.entries(data[c])) pending.set(c + '/' + id, {col:c, id, data:d});
   }
-  S = withPending(remote); saveCache(); scheduleRender(); setSync('dirty'); schedulePush();
+  rebuild(); saveCache(); scheduleRender(); setSync('dirty'); schedulePush();
 }
 
 /* ---------- derived ---------- */
@@ -469,13 +495,19 @@ function go(name, arg){
 let renderQueued = false, dirty = false;
 function scheduleRender(){ if (renderQueued) return; renderQueued = true; requestAnimationFrame(() => { renderQueued = false; renderAll(); }); }
 function editing(){ if (pickerClose) return true; const a = document.activeElement; return a && $('.panel').contains(a) && /INPUT|TEXTAREA|SELECT/.test(a.tagName); }
-function renderAll(){ syncSprites(); renderPanel(false); if (!$('#drawer').hidden) renderDrawer(); }
+function renderAll(){
+  syncSprites();
+  const g = isGuest();
+  $('#addBookBtn').hidden = g; $('#playBtn').hidden = g; $('#guestBtn').hidden = !g;
+  $('#guestBtn').textContent = guestMemberId() ? 'Poner mis notas' : 'Crear mi miembro';
+  renderPanel(false); if (!$('#drawer').hidden) renderDrawer(); }
 function renderPanel(force){
   if (view.name === 'home') return;
   if (!force){ if (FORM_VIEWS.includes(view.name)) return; if (editing()){ dirty = true; return; } }
   dirty = false;
   const bar = $('#bar'), el = $('#view'), keep = el.scrollTop; bar.innerHTML = ''; el.innerHTML = '';
   const top = (label, to = 'home', text = '‹ Inicio') => bar.append(h('button', {class:'ghost', onclick:() => to === 'home' ? leave() : go(to)}, text), h('span', {class:'title'}, label));
+  if (isGuest() && (view.name === 'addBook' || view.name === 'play' || view.name === 'rate')){ go('home'); return; }
   switch (view.name){
     case 'addBook': top('Nuevo libro'); addBookView(el); break;
     case 'rate': top('Notas', 'home', '‹ Salir'); rateView(el); break;
@@ -498,8 +530,14 @@ function leave(){
 
 function greet(){
   if (view.name !== 'home') return;
-  if (joinedNow){ joinedNow = false; say('Domingas', '¡Ya estás en el club! Ya puedes añadir libros y poner notas desde este navegador.'); return; }
+  if (joinedNow){ joinedNow = false; SS.set('domingas-guest', null); say('Domingas', '¡Ya estás en el club! Ya puedes añadir libros y poner notas desde este navegador.'); return; }
   const ms = members(), last = books()[0];
+  if (isGuest()){
+    const me = guestMemberId() && S.members[guestMemberId()];
+    say('Domingas', me ? `Hola, ${me.name}. Pon tus notas a los libros del club desde "Poner mis notas". Es solo para ti: no se guarda.`
+      : `Hola. Puedes crear tu miembro y puntuar los libros que ha leído el club. Es solo para ti en esta pestaña: no se guarda.`);
+    return;
+  }
   if (!ms.length) say('Domingas', 'Hola, Domingas. Antes de nada, añadid a los miembros desde el menú de arriba a la derecha.');
   else if (!last) say('Domingas', `Ya sois ${ms.length}. Cuando terminéis el primer libro, pulsad "Añadir libro".`);
   else { const st = bookStats(last.id); say('Domingas', `Último libro: “${last.title}”.` + (st.real != null ? ` Media del club: ${fmt(st.real)}.` : ' Aún sin notas.')); }
@@ -512,8 +550,8 @@ function renderDrawer(){
   const el = $('#drawerMenu'); el.innerHTML = '';
   const bs = books(), ms = members();
   el.append(
-    h('button', {onclick:() => { regBook = bs[0] ? bs[0].id : null; regEdit = null; go('registry'); }}, h('b', {}, 'Registro'), h('span', {}, bs.length ? `${plural(bs.length, 'libro', 'libros')}. Notas, cambios y borrados.` : 'Aún no hay libros.')),
-    h('button', {onclick:() => go('members')}, h('b', {}, 'Miembros'), h('span', {}, `${plural(ms.length, 'miembro', 'miembros')}. Añadir o editar perfiles.`)));
+    h('button', {onclick:() => { regBook = bs[0] ? bs[0].id : null; regEdit = null; go('registry'); }}, h('b', {}, 'Registro'), h('span', {}, bs.length ? `${plural(bs.length, 'libro', 'libros')}. ${isGuest() ? 'Tus notas.' : 'Notas, cambios y borrados.'}` : 'Aún no hay libros.')),
+    h('button', {onclick:() => go('members')}, h('b', {}, isGuest() ? 'Mi miembro' : 'Miembros'), h('span', {}, isGuest() ? (ms.length ? 'Ver o cambiar tu perfil.' : 'Crea tu miembro.') : `${plural(ms.length, 'miembro', 'miembros')}. Añadir o editar perfiles.`)));
   if (view.name !== 'home') el.append(h('button', {onclick:() => leave()}, h('b', {}, 'Inicio'), h('span', {}, 'Volver a la sala.')));
   el.append(h('button', {onclick:() => go('settings')}, h('b', {}, 'Ajustes'), h('span', {}, syncLine())));
 }
@@ -554,6 +592,10 @@ $('#drawerClose').addEventListener('click', closeDrawer);
 $('#scrim').addEventListener('click', closeDrawer);
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#drawer').hidden) closeDrawer(); });
 $('#addBookBtn').addEventListener('click', () => go('addBook'));
+$('#guestBtn').addEventListener('click', () => {
+  if (!guestMemberId()) return go('member');
+  const bs = books(); regBook = regBook && S.books[regBook] ? regBook : (bs[0] || {}).id || null; regEdit = null; go('registry');
+});
 $('#playBtn').addEventListener('click', () => { playBook = playBook && S.books[playBook] ? playBook : (books()[0] || {}).id || null; go('play'); });
 
 /* ---------- add a book ---------- */
@@ -665,12 +707,14 @@ function registryBar(bar){
 }
 function registryView(el){
   const b = regBook && S.books[regBook];
-  if (!b){ el.append(h('p', {}, 'El registro está vacío.'), h('button', {class:'btn primary', onclick:() => go('addBook')}, 'Añadir libro')); return; }
+  if (!b){ el.append(h('p', {}, 'El registro está vacío.'), isGuest() ? null : h('button', {class:'btn primary', onclick:() => go('addBook')}, 'Añadir libro')); return; }
   el.append(h('div', {class:'cover', role:'img', 'aria-label':`Portada: ${b.title}`},
     h('span', {class:'t'}, b.title), b.author ? h('span', {class:'a'}, b.author) : null, h('span', {class:'d'}, `Domingas, ${dateLabel(b)}`)));
   if (b.about) el.append(h('p', {class:'muted'}, b.about));
   const st = bookStats(regBook), ms = members();
-  el.append(h('div', {class:'stats', style:'margin-top:14px'}, h('span', {}, `Club ${fmt(st.real)}`), h('span', {}, `Dobles ${fmt(st.persona)}`), h('span', {class:'muted'}, `${st.nReal} de ${ms.length} notas`)));
+  if (isGuest()){
+    if (!ms.length){ el.append(h('p', {style:'margin-top:14px'}, 'Para poner tu nota, primero crea tu miembro.'), h('button', {class:'btn primary', onclick:() => go('member')}, 'Crear mi miembro')); return; }
+  } else el.append(h('div', {class:'stats', style:'margin-top:14px'}, h('span', {}, `Club ${fmt(st.real)}`), h('span', {}, `Dobles ${fmt(st.persona)}`), h('span', {class:'muted'}, `${st.nReal} de ${ms.length} notas`)));
   if (regEdit){
     for (const m of ms){
       el.append(h('div', {class:'rrow'}, h('div', {class:'nm'}, h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}), h('span', {}, m.name)),
@@ -681,7 +725,7 @@ function registryView(el){
       h('button', {class:'btn', onclick:() => { regEdit = null; renderPanel(true); }}, 'Cancelar')));
     return;
   }
-  el.append(h('div', {class:'heads', style:'margin-top:8px'}, h('span', {}, ''), h('span', {}, 'Nota'), h('span', {}, 'Doble')));
+  el.append(h('div', {class:'heads', style:'margin-top:8px'}, h('span', {}, ''), h('span', {}, 'Nota'), h('span', {}, isGuest() ? '' : 'Doble')));
   for (const m of ms){
     const r = real(regBook, m.id), g = guess(regBook, m.id), hit = scored(r) && scored(g) && r.score === g.score;
     el.append(h('div', {class:'mrow', style:'cursor:default'},
@@ -690,21 +734,22 @@ function registryView(el){
       h('span', {class:'cell' + (scored(g) ? '' : ' empty')}, scored(g) ? g.score : '·')));
   }
   let sure = false;
-  const del = h('button', {class:'btn', onclick:async () => {
+  const del = isGuest() ? null : h('button', {class:'btn', onclick:async () => {
     if (!sure){ sure = true; del.textContent = '¿Seguro? Toca otra vez'; return; }
     const id = regBook, title = b.title;
     for (const m of Object.keys(S.members)){ if (S.ratings[rKey(id, m)]) await remove('ratings', rKey(id, m)); if (S.personas[rKey(id, m)]) await remove('personas', rKey(id, m)); }
     await remove('books', id); regBook = null; say('Domingas', `“${title}” borrado del registro.`); renderPanel(true);
   }}, 'Borrar libro');
   el.append(h('div', {class:'row', style:'margin-top:22px'},
-    h('button', {class:'btn primary', onclick:() => { regEdit = {}; for (const m of ms){ const r = real(regBook, m.id); regEdit[m.id] = scored(r) ? r.score : null; } renderPanel(true); }}, 'Editar notas'), del));
+    h('button', {class:'btn primary', onclick:() => { regEdit = {}; for (const m of ms){ const r = real(regBook, m.id); regEdit[m.id] = scored(r) ? r.score : null; } renderPanel(true); }}, isGuest() ? 'Poner mi nota' : 'Editar notas'), del));
 }
 
 /* ---------- members ---------- */
 function membersView(el){
   const ms = members();
-  el.append(h('p', {}, h('button', {class:'btn primary', onclick:() => go('member')}, 'Añadir miembro')));
-  if (!ms.length){ el.append(h('p', {class:'muted'}, 'Aún no hay miembros.')); return; }
+  if (!isGuest() || !ms.length) el.append(h('p', {}, h('button', {class:'btn primary', onclick:() => go('member')}, isGuest() ? 'Crear mi miembro' : 'Añadir miembro')));
+  if (isGuest()) el.append(h('p', {class:'note'}, 'Sin invitación solo ves tu propio miembro, y no se guarda: desaparece al cerrar la pestaña.'));
+  if (!ms.length){ if (!isGuest()) el.append(h('p', {class:'muted'}, 'Aún no hay miembros.')); return; }
   const list = h('div', {class:'list'});
   for (const m of ms){
     list.append(h('button', {class:'item', onclick:() => { selMember = m.id; go('member', m.id); }},
@@ -729,7 +774,7 @@ function memberForm(el, mid){
   const del = m ? h('button', {class:'btn', type:'button', onclick:async () => {
     if (!sure){ sure = true; del.textContent = 'Toca otra vez para eliminar'; return; }
     for (const b of Object.keys(S.books)){ if (S.ratings[rKey(b, mid)]) await remove('ratings', rKey(b, mid)); if (S.personas[rKey(b, mid)]) await remove('personas', rKey(b, mid)); }
-    await remove('members', mid); say('Domingas', `${m.name} ya no está en el club.`); go('members');
+    await remove('members', mid); say('Domingas', isGuest() ? `${m.name} ha salido de la sala.` : `${m.name} ya no está en el club.`); go('members');
   }}, 'Eliminar') : null;
   el.append(h('form', {autocomplete:'off', onsubmit:async e => {
     e.preventDefault();
@@ -737,7 +782,7 @@ function memberForm(el, mid){
     if (members().find(x => x.name.toLowerCase() === nm.toLowerCase() && x.id !== mid)){ note.textContent = `Ya hay alguien que se llama ${nm}.`; return; }
     const id = mid || newId('m');
     try { await write('members', id, {name:nm, bio:bio.value.trim(), look, at:(m && m.at) || Date.now()}); } catch (x) { return; }
-    if (!mid){ say(nm, `${nm} entra en la sala. Ya es parte de Domingas.`); setTimeout(() => { const sp = sprites[id]; if (sp){ sp.bubble = 'hi'; sp.bubbleUntil = performance.now() + 3000; } }, 150); }
+    if (!mid){ say(nm, isGuest() ? `${nm} entra en la sala. Ya puedes poner tus notas desde "Poner mis notas".` : `${nm} entra en la sala. Ya es parte de Domingas.`); setTimeout(() => { const sp = sprites[id]; if (sp){ sp.bubble = 'hi'; sp.bubbleUntil = performance.now() + 3000; } }, 150); }
     else say(nm, `Perfil de ${nm} guardado.`);
     go('members');
   }},
