@@ -18,7 +18,7 @@ Members join by opening an **invite link** once. After that they can add books a
 | `data.json` | The club's data: members, books, ratings and the doubles' guesses. |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are. |
 | `.github/workflows/doubles.yml` | The Action that runs the doubles when `data.json` changes. |
-| `.github/doubles/doubles.mjs` | The script it runs. Its prompt mirrors `personaPrompt()` in `index.html`, so change both together. |
+| `.github/doubles/doubles.mjs` | The script it runs, including the prompt that tells Gemini how to play each member's double. |
 
 ## Setup (about 15 minutes, done once by whoever runs the club)
 
@@ -34,7 +34,7 @@ Members join by opening an **invite link** once. After that they can add books a
    - *Repository access:* **Only select repositories**, then pick your Domingas repo.
    - *Permissions → Repository permissions → Contents:* **Read and write**. Nothing else.
    - *Expiration:* up to a year. When it expires, create a new one and send a new invite link.
-5. **Invite the club:** open the club page, go to **Menú → Ajustes → Token de GitHub**, paste the token and tap **Guardar token**. Then tap **Copiar enlace de invitación** and send that link privately to each member, for example in your WhatsApp group.
+5. **Invite the club:** open the club page, go to **Menú → Ajustes → Token de GitHub**, paste the token and tap **Guardar token**. Once saved, the field hides behind **Cambiar token**, which is also where you paste a renewed token. Then tap **Copiar enlace de invitación** and send that link privately to each member, for example in your WhatsApp group.
 
 ## For members
 
@@ -57,7 +57,6 @@ Members join by opening an **invite link** once. After that they can add books a
 
 - **Custom domain:** if you don't use `*.github.io`, open `index.html`, find `const CONFIG` near the top of the script and fill in `owner` and `repo`. The branch and file name are also set there.
 - **Model and limits:** the doubles use `gemini-3.5-flash-lite`. Each run asks for at most 30 guesses, 4 seconds apart, to stay under the free tier's per-minute limit. All three can be changed at the top of `.github/doubles/doubles.mjs`. If Gemini says the limit is used up, the run stops, and whatever is missing is asked on the next run.
-- **Asking on demand:** anyone can still add their own Gemini key in **Ajustes** to ask a double on demand from that browser. This is optional and not needed for the club to work. The model for this is in `const CONFIG` in `index.html`.
 
 ## Good to know
 

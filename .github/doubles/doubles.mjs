@@ -3,7 +3,7 @@
 // it asks Gemini what that member would give the book, and commits the guesses back to data.json.
 // The Gemini key lives in the repository secret GEMINI_API_KEY, so it is never on the web page.
 //
-// The prompt mirrors personaPrompt() in index.html: if you change one, change the other.
+// This is the only place the doubles' prompt lives (see personaPrompt below).
 
 import {readFileSync, writeFileSync} from 'node:fs';
 import {execFileSync} from 'node:child_process';

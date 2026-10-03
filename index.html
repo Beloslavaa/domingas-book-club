@@ -261,7 +261,6 @@ const CONFIG = {
   repo: '',             // nombre del repositorio
   branch: 'main',       // rama donde está data.json
   path: 'data.json',    // archivo con los datos del club
-  model: 'gemini-3.5-flash-lite', // modelo de Gemini para preguntar al momento (los dobles automáticos usan el de .github/doubles/doubles.mjs)
 };
 (() => {
   const m = location.hostname.match(/^([^.]+)\.github\.io$/i);
@@ -274,7 +273,7 @@ const LS = {
   set(k, v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} },
 };
 const ghToken = () => LS.get('domingas-gh-token') || '';
-const apiKey = () => LS.get('domingas-gemini-key') || '';
+LS.set('domingas-gemini-key', null); // ya no se usa: los dobles piensan en GitHub (borramos claves guardadas antes)
 // Enlace de invitación: https://…/#club=<token>. Se guarda el token en este navegador y se borra de la barra de direcciones.
 let joinedNow = false;
 (() => {
@@ -430,39 +429,6 @@ async function importJSON(file){
   S = withPending(remote); saveCache(); scheduleRender(); setSync('dirty'); schedulePush();
 }
 
-/* ---------- Gemini (API de Google) ---------- */
-async function askLLM(prompt, signal){
-  const key = apiKey(); if (!key) throw {code:'no_key'};
-  let res;
-  try {
-    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(CONFIG.model)}:generateContent`, {method:'POST', signal,
-      headers:{'content-type':'application/json', 'x-goog-api-key':key},
-      body:JSON.stringify({contents:[{role:'user', parts:[{text:prompt}]}], generationConfig:{responseMimeType:'application/json', maxOutputTokens:2048}})});
-  } catch (e) { throw {code:e && e.name === 'AbortError' ? 'cancelled' : 'network'}; }
-  let j = {}; try { j = await res.json(); } catch (e) {}
-  if (!res.ok){
-    const msg = (j.error && j.error.message) || '';
-    if (res.status === 429) throw {code:'rate_limited'};
-    if (res.status === 401 || res.status === 403 || /api key/i.test(msg)) throw {code:'bad_key'};
-    throw {code:res.status >= 500 ? 'overloaded' : 'upstream_error'};
-  }
-  const c = (j.candidates || [])[0];
-  const text = ((c && c.content && c.content.parts) || []).map(p => p.text || '').join('');
-  const a = text.indexOf('{'), b = text.lastIndexOf('}');
-  if (a < 0 || b < a) throw {code:'invalid_json'};
-  try { return JSON.parse(text.slice(a, b + 1)); } catch (e) { throw {code:'invalid_json'}; }
-}
-function errCopy(e){
-  const c = e && e.code;
-  if (c === 'no_key') return 'Para preguntar al momento, añade tu clave de la API de Gemini en Menú, Ajustes.';
-  if (c === 'bad_key') return 'La clave de Gemini no es válida. Revísala en Menú, Ajustes.';
-  if (c === 'overloaded') return 'Gemini está saturado ahora mismo. Prueba otra vez en un rato.';
-  if (c === 'rate_limited') return 'Demasiadas preguntas seguidas o se ha acabado el cupo de Gemini. Espera un poco y vuelve a intentarlo.';
-  if (c === 'invalid_json') return 'La respuesta del doble llegó incompleta. Prueba otra vez.';
-  if (c === 'network') return 'No se ha podido contactar con Gemini. Revisa la conexión.';
-  return 'Gemini no ha podido contestar ahora. Inténtalo otra vez.';
-}
-
 /* ---------- derived ---------- */
 const members = () => Object.entries(S.members).map(([id, m]) => ({id, ...m})).sort((a, b) => (a.name || '').localeCompare(b.name || '', 'es'));
 const bookKey = b => b.date || (b.month ? b.month + '-01' : '');
@@ -488,7 +454,7 @@ function aboutMember(m){
 }
 
 /* ---------- navigation ---------- */
-let view = {name:'home'}, selMember = null, asking = new Set();
+let view = {name:'home'}, selMember = null;
 let rateDraft = null, regBook = null, regEdit = null, playBook = null, playMember = null;
 const FORM_VIEWS = ['addBook', 'member', 'settings'];
 function modeFor(n){ return n === 'home' ? 'home' : n === 'registry' ? 'full' : 'split'; }
@@ -559,40 +525,41 @@ function syncLine(){
   if (sync.state === 'loading') return 'Cargando data.json…';
   return `Todo guardado en ${CONFIG.owner}/${CONFIG.repo}.`;
 }
+let showToken = false;
 function settingsView(el){
   const status = h('p', {class:'card', id:'syncStatus'}, syncLine());
   el.append(h('span', {class:'lbl', style:'margin-top:0'}, 'Guardado'), status);
   if (storeMode === 'github'){
-    const tok = h('input', {type:'password', autocomplete:'off', placeholder:ghToken() ? 'Token guardado en este navegador' : 'github_pat_…', 'aria-label':'Token de GitHub'});
+    el.append(h('div', {class:'row'}, h('button', {class:'btn', onclick:() => pull(false).then(() => renderPanel(true))}, 'Actualizar')));
     if (ghToken()){
       const out = h('input', {readonly:true, 'aria-label':'Enlace de invitación', style:'display:none'});
-      el.append(h('span', {class:'lbl'}, 'Invitar al club'),
+      el.append(h('span', {class:'lbl', style:'margin-top:28px'}, 'Invitar al club'),
         h('p', {class:'note', style:'margin:0 0 8px'}, 'Quien abra este enlace podrá guardar desde su navegador, sin configurar nada. Compártelo solo por privado: da acceso a editar el club.'),
         h('div', {class:'row'}, h('button', {class:'btn primary', onclick:async e => {
           const link = inviteLink(), b = e.currentTarget;
           try { await navigator.clipboard.writeText(link); b.textContent = 'Enlace copiado'; } catch (x) { out.style.display = ''; out.value = link; out.select(); b.textContent = 'Cópialo de aquí abajo'; }
         }}, 'Copiar enlace de invitación')), out);
-    } else el.append(h('p', {class:'card'}, 'Para poder guardar, abre el enlace de invitación que te haya pasado alguien del club.'));
-    el.append(h('label', {class:'f'}, 'Token de GitHub (para guardar)'),
-      h('p', {class:'note', style:'margin:0 0 6px'}, 'Lo pone quien administra el club: un token "fine-grained" solo para este repositorio con permiso Contents: Read and write. Se guarda únicamente en este navegador.'),
-      tok, h('div', {class:'row', style:'margin-top:10px'},
-        h('button', {class:'btn primary', onclick:() => { const v = tok.value.trim(); if (!v) return; LS.set('domingas-gh-token', v); say('Domingas', 'Token guardado.'); pull(true).then(() => schedulePush()); renderPanel(true); }}, 'Guardar token'),
-        ghToken() ? h('button', {class:'btn', onclick:() => { LS.set('domingas-gh-token', null); renderPanel(true); }}, 'Quitar') : null,
-        h('button', {class:'btn', onclick:() => pull(false).then(() => renderPanel(true))}, 'Actualizar')));
+    } else el.append(h('p', {class:'card', style:'margin-top:18px'}, 'Para poder guardar, abre el enlace de invitación que te haya pasado alguien del club.'));
+    // El token solo lo toca quien administra el club (al empezar o al renovarlo); al resto no le hace falta verlo.
+    if (ghToken() && !showToken) el.append(h('p', {style:'margin:14px 0 0'}, h('button', {class:'ghost', style:'font-size:18px', onclick:() => { showToken = true; renderPanel(true); }}, 'Cambiar token')));
+    else {
+      const tok = h('input', {type:'password', autocomplete:'off', placeholder:'github_pat_…', 'aria-label':'Token de GitHub'});
+      el.append(h('label', {class:'f', style:'margin-top:24px'}, 'Token de GitHub (solo quien administra el club)'),
+        h('p', {class:'note', style:'margin:0 0 6px'}, 'Un token "fine-grained" solo para este repositorio con permiso Contents: Read and write. Se guarda únicamente en este navegador.'),
+        tok, h('div', {class:'row', style:'margin-top:10px'},
+          h('button', {class:'btn primary', onclick:() => { const v = tok.value.trim(); if (!v) return; LS.set('domingas-gh-token', v); showToken = false; say('Domingas', 'Token guardado.'); pull(true).then(() => schedulePush()); renderPanel(true); }}, 'Guardar token'),
+          ghToken() ? h('button', {class:'btn', onclick:() => { LS.set('domingas-gh-token', null); showToken = false; renderPanel(true); }}, 'Quitar de este navegador') : null,
+          ghToken() ? h('button', {class:'btn', onclick:() => { showToken = false; renderPanel(true); }}, 'Cancelar') : null));
+    }
   }
-  const key = h('input', {type:'password', autocomplete:'off', placeholder:apiKey() ? 'Clave guardada en este navegador' : 'AIza…', 'aria-label':'Clave de la API de Gemini'});
-  el.append(h('label', {class:'f', style:'margin-top:24px'}, 'Clave de la API de Gemini (opcional)'),
-    h('p', {class:'note', style:'margin:0 0 6px'}, 'No hace falta: los dobles piensan solos en GitHub. Con una clave, además puedes preguntarles al momento desde este navegador.'),
-    key, h('div', {class:'row', style:'margin-top:10px'},
-      h('button', {class:'btn primary', onclick:() => { const v = key.value.trim(); if (!v) return; LS.set('domingas-gemini-key', v); say('Domingas', 'Clave de Gemini guardada.'); renderPanel(true); }}, 'Guardar clave'),
-      apiKey() ? h('button', {class:'btn', onclick:() => { LS.set('domingas-gemini-key', null); renderPanel(true); }}, 'Quitar') : null));
   const file = h('input', {type:'file', accept:'application/json,.json', style:'display:none'});
   let armed = null;
   file.addEventListener('change', async () => { const f = file.files[0]; if (!f) return; try { await importJSON(f); say('Domingas', 'Datos importados.'); } catch (e) { say('Domingas', 'Ese archivo no parece un data.json válido.'); } });
-  el.append(h('span', {class:'lbl', style:'margin-top:28px'}, 'Copia de seguridad'),
-    h('p', {class:'note', style:'margin:0 0 8px'}, 'Descarga todos los datos como data.json, o sustituye los datos actuales por los de un archivo.'),
-    h('div', {class:'row'}, h('button', {class:'btn', onclick:exportJSON}, 'Descargar JSON'),
-      armed = h('button', {class:'btn', onclick:() => { if (armed.dataset.sure){ file.click(); delete armed.dataset.sure; armed.textContent = 'Importar JSON'; } else { armed.dataset.sure = '1'; armed.textContent = 'Sustituirá todo. Toca otra vez'; } }}, 'Importar JSON')), file);
+  el.append(h('div', {style:'margin-top:40px;padding-top:14px;border-top:2px dashed var(--c2)'},
+    h('span', {class:'lbl', style:'margin-top:0'}, 'Copia de seguridad'),
+    h('p', {class:'note', style:'margin:0 0 8px'}, 'GitHub ya guarda todas las versiones. Aquí puedes descargar los datos o sustituirlos por los de un archivo.'),
+    h('div', {class:'row'}, h('button', {class:'ghost', style:'font-size:18px', onclick:exportJSON}, 'Descargar JSON'),
+      armed = h('button', {class:'ghost', style:'font-size:18px', onclick:() => { if (armed.dataset.sure){ file.click(); delete armed.dataset.sure; armed.textContent = 'Importar JSON'; } else { armed.dataset.sure = '1'; armed.textContent = 'Sustituirá todo. Toca otra vez'; } }}, 'Importar JSON')), file));
 }
 $('#menuBtn').addEventListener('click', openDrawer);
 $('#drawerClose').addEventListener('click', closeDrawer);
@@ -813,21 +780,13 @@ function playView(el){
     const g = guess(playBook, m.id), r = real(playBook, m.id);
     const box = h('div', {class:'double', style:'margin-top:18px'});
     box.append(h('span', {class:'lbl', style:'margin-top:0'}, `El doble de ${m.name}`));
-    if (asking.has(m.id)) box.append(h('p', {class:'muted', style:'margin:0 0 10px', 'data-ask':m.id}, askStatus(m.id)),
-      h('button', {class:'btn', onclick:() => { const c = askCtl[m.id]; if (c) c.abort(); }}, 'Cancelar'));
-    else if (!g){
-      if (apiKey()) box.append(h('button', {class:'btn primary', onclick:() => askPersona(m.id, playBook)}, `¿Qué diría ${m.name}?`));
-      else box.append(h('p', {class:'muted', style:'margin:0'}, storeMode === 'github' && (!remote.books[playBook] || !remote.members[m.id])
-        ? 'El doble empezará a pensar en cuanto el libro esté guardado en GitHub.'
-        : 'El doble está pensando… Su nota aparecerá aquí en un par de minutos.'));
-    }
+    if (!g) box.append(h('p', {class:'muted', style:'margin:0'}, storeMode === 'github' && (!remote.books[playBook] || !remote.members[m.id])
+      ? 'El doble empezará a pensar en cuanto el libro esté guardado en GitHub.'
+      : 'El doble está pensando… Su nota aparecerá aquí en un par de minutos.'));
     else {
       box.append(h('div', {class:'split'}, h('span', {class:'big'}, `${g.score}/10`),
         scored(r) ? h('span', {class:'badge' + (g.score === r.score ? ' hit' : '')}, g.score === r.score ? '¡Clavado!' : `Real: ${r.score}`) : h('span', {class:'note'}, 'Sin nota real aún')));
       if (g.comment) box.append(h('q', {}, g.comment));
-      // Con la nota real ya puesta, la apuesta del doble queda fijada (si no, se podría repetir hasta acertar).
-      box.append(scored(r) ? h('p', {class:'note', style:'margin:12px 0 0'}, 'Apuesta cerrada: ya hay nota real.')
-        : apiKey() ? h('p', {style:'margin:12px 0 0'}, h('button', {class:'btn', onclick:() => askPersona(m.id, playBook)}, 'Preguntar otra vez')) : null);
     }
     el.append(box);
   }
@@ -839,62 +798,6 @@ function playView(el){
       h('span', {class:'pct'}, `${x.pct}%`))));
   }
 }
-function personaPrompt(m, b){
-  const past = books().filter(x => x.id !== b.id).reverse();
-  const hist = past.map(x => { const r = real(x.id, m.id); if (!r || (!scored(r) && !r.comment)) return null;
-    return `- "${x.title}"${x.author ? ' by ' + x.author : ''}: gave ${scored(r) ? r.score + '/10' : 'no score'}${r.comment ? `. Said: "${r.comment}"` : ''}`; }).filter(Boolean);
-  const calib = past.map(x => { const r = real(x.id, m.id), g = guess(x.id, m.id);
-    return scored(r) && scored(g) ? `- "${x.title}": you guessed ${g.score}, the real ${m.name} gave ${r.score}` : null; }).filter(Boolean);
-  return `You are the "double" of ${m.name}, a member of Domingas, a monthly book club in Spain. Predict how the real ${m.name} would rate a book the club read.
-
-HOW ${m.name.toUpperCase()} INTRODUCES THEMSELVES
-${aboutMember(m) || '(no introduction yet)'}
-
-THEIR REAL RATINGS OF OTHER CLUB BOOKS (oldest first)
-${hist.length ? hist.join('\n') : '(none yet)'}
-
-YOUR PAST GUESSES VERSUS REALITY
-${calib.length ? calib.join('\n') + '\nLearn from these misses: if you tend to be too generous or too harsh, correct for it. When their real ratings disagree with how they describe themselves, trust the real ratings.' : '(no track record yet)'}
-
-THE BOOK
-"${b.title}"${b.author ? ' by ' + b.author : ''}${b.about ? `\nSynopsis: ${b.about}` : ''}
-
-Assume ${m.name} finished it. Give the score they would actually give, using the 1 to 10 range the way they do. Then write what they'd say about it at the meeting, in their own voice, in Spanish from Spain.
-
-Reply with ONLY a JSON object, no prose and no code fences:
-{"score":7,"comment":"first person, in Spanish, max 45 words"}`;
-}
-const askCtl = {}, askStart = {};
-async function askPersona(mid, bid){
-  if (!mid || !bid || !S.members[mid] || !S.books[bid] || asking.has(mid)) return;
-  if (guess(bid, mid) && scored(real(bid, mid))) return; // apuesta cerrada
-  const m = S.members[mid], b = {id:bid, ...S.books[bid]};
-  if (!apiKey()){ say(m.name, errCopy({code:'no_key'})); return; }
-  const redraw = () => { if (view.name === 'play') renderPanel(true); }; // no tocar otros formularios abiertos
-  asking.add(mid); askStart[mid] = Date.now(); redraw();
-  const ctl = new AbortController(); askCtl[mid] = ctl;
-  const sp = sprites[mid]; if (sp){ sp.bubble = 'ask'; sp.bubbleUntil = performance.now() + 300000; }
-  say(`Doble de ${m.name}`, 'Pensando…');
-  try {
-    const out = await askLLM(personaPrompt(m, b), ctl.signal);
-    const score = clamp(Math.round(Number(out && out.score)) || 5, 1, 10);
-    const comment = String(out && out.comment || '').trim().slice(0, 320);
-    await write('personas', rKey(bid, mid), {bookId:bid, memberId:mid, score, comment, at:Date.now()});
-    if (sp){ sp.bubble = 'num'; sp.num = score; sp.bubbleUntil = performance.now() + 5000; sp.jumpUntil = performance.now() + 600; }
-    const r = real(bid, mid);
-    say(`Doble de ${m.name}`, `“${comment}”\nLe pondría un ${score}.` + (scored(r) ? ` ${m.name} le puso un ${r.score}.` : ''));
-  } catch (e) {
-    if (sp) sp.bubbleUntil = 0;
-    say(`Doble de ${m.name}`, e && e.code === 'cancelled' ? 'Pregunta cancelada.' : errCopy(e));
-  } finally { asking.delete(mid); delete askCtl[mid]; redraw(); }
-}
-function askStatus(mid){
-  const secs = Math.floor((Date.now() - (askStart[mid] || Date.now())) / 1000);
-  return secs >= 25 ? `Pensando… ${secs} s. Está tardando: puedes cancelar y probar otra vez.` : `Pensando… ${secs} s`;
-}
-function tickAsk(){ document.querySelectorAll('[data-ask]').forEach(el => { el.textContent = askStatus(el.dataset.ask); }); }
-setInterval(tickAsk, 1000);
-
 /* ---------- dialog ---------- */
 const dWho = $('#dWho'), dTxt = $('#dTxt');
 let typeTimer = null;
@@ -1107,7 +1010,6 @@ function drawMember(id, p, t){
     const bw = p.bubble === 'num' ? n.length * 4 + 3 : 9, bx = ox + 7, by = oy - 11;
     R(bx, by, bw, 9, INK); R(bx + 1, by + 1, bw - 2, 7, '#ffffff'); R(bx + 1, by + 8, 2, 2, INK);
     if (p.bubble === 'num') digits(n, bx + 2, by + 2, '#9a3a6a');
-    else if (p.bubble === 'ask'){ R(bx + 3, by + 2, 3, 1, INK); R(bx + 5, by + 3, 1, 1, INK); R(bx + 4, by + 4, 1, 1, INK); R(bx + 4, by + 6, 1, 1, INK); }
     else if (p.bubble === 'dot'){ R(bx + 2, by + 4, 1, 1, INK); R(bx + 4, by + 4, 1, 1, INK); R(bx + 6, by + 4, 1, 1, INK); }
     else { R(bx + 4, by + 2, 1, 3, '#e05050'); R(bx + 4, by + 6, 1, 1, '#e05050'); }
   }
