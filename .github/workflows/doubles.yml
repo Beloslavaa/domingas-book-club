@@ -8,6 +8,12 @@ on:
     branches: [main]
     paths: [data.json]
   workflow_dispatch: # botón "Run workflow" en la pestaña Actions
+    inputs:
+      modo:
+        description: 'normal: las que faltan · rehacer-sin-nota: también rehace las que aún no tienen nota real · probar: enseña respuestas sin guardar'
+        type: choice
+        options: [normal, rehacer-sin-nota, probar]
+        default: normal
 
 permissions:
   contents: write # para guardar data.json
@@ -29,3 +35,4 @@ jobs:
         run: node .github/doubles/doubles.mjs
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          MODE: ${{ inputs.modo || 'normal' }}
