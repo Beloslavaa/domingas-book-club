@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-03T20:55:05.686Z",
+  "updatedAt": "2026-10-03T20:56:20.796Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -19,32 +19,7 @@
       "at": 1790800042191
     }
   },
-  "books": {
-    "b-muolwmjv1hw2": {
-      "about": "De la guerra civil",
-      "at": 1790803062571,
-      "author": "Almudena Grandes",
-      "date": "2026-09-30",
-      "month": "2026-09",
-      "title": "El lector de Julio Verne"
-    }
-  },
-  "ratings": {
-    "b-muolwmjv1hw2~m-muok3w0ff6xr": {
-      "at": 1790803083432,
-      "bookId": "b-muolwmjv1hw2",
-      "comment": "",
-      "memberId": "m-muok3w0ff6xr",
-      "score": 6
-    }
-  },
-  "personas": {
-    "b-muolwmjv1hw2~m-muok3w0ff6xr": {
-      "at": 1790803399281,
-      "bookId": "b-muolwmjv1hw2",
-      "comment": "Grandes tira de filosofía y dureza histórica, eso me engancha. La Guerra Civil cruda, sin romantizar. Aunque a veces se va por derroteros sentimentales que no necesita. Buena exploración de cómo la literatura nos salva.",
-      "memberId": "m-muok3w0ff6xr",
-      "score": 7
-    }
-  }
+  "books": {},
+  "ratings": {},
+  "personas": {}
 }
