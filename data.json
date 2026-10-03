@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-03T20:56:20.796Z",
+  "updatedAt": "2026-10-03T20:59:37.234Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -19,7 +19,16 @@
       "at": 1790800042191
     }
   },
-  "books": {},
+  "books": {
+    "b-musvkvnr2mnx": {
+      "title": "El lector de Julio Verne",
+      "author": "Almudena Grandes",
+      "about": "A través de la mirada de Nino, un niño de nueve años hijo de un guardia civil, se muestra su evolución moral y personal para distinguir entre el bien y el mal.  El trasfondo histórico retrata el terror cotidiano, la violencia de la dictadura y el enfrentamiento entre la Guardia Civil y los maquis (guerrilleros antifranquistas) en la sierra de Jaén entre 1947 y 1949.",
+      "date": "2026-10-03",
+      "month": "2026-10",
+      "at": 1791061175367
+    }
+  },
   "ratings": {},
   "personas": {}
 }
