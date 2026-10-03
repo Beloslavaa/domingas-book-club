@@ -1,22 +1,22 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-03T00:00:00Z",
+  "updatedAt": "2026-10-03T20:54:24.140Z",
   "members": {
     "m-muok3w0ff6xr": {
-      "at": 1790800042191,
-      "bio": "Tengo 26 años. Busco en un libro: To teach me something, philosophical and tough. Mis favoritos: Demian, In cold blood. I don't like love",
+      "name": "Bella",
+      "bio": "Soy un poco performativa con mi gusto de libros, me gustan libros más existencialistas o novelas clásicas, para parecer más lista. De romance me gusta cuando la mujer es todo para el hombre y el no puede vivir sin ella. Muchas veces busco en internet interpretaciones de las cosas que pasan en las novelas, porque he daydreamed mientras leía.",
       "look": {
-        "beard": false,
+        "hair": "long",
         "body": 1,
-        "glasses": true,
-        "hair": "spiky",
-        "hc": 1,
-        "mark": "tie",
+        "mark": "collar",
+        "glasses": false,
+        "beard": false,
         "skin": 0,
-        "top": 0
+        "hc": 1,
+        "top": 4
       },
-      "name": "Johnn"
+      "at": 1790800042191
     }
   },
   "books": {
