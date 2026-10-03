@@ -104,6 +104,11 @@ async function main(){
     console.log('::warning::Falta el secreto GEMINI_API_KEY (Settings → Secrets and variables → Actions). Los dobles no pueden pensar.');
     return;
   }
+  // Partimos de la última versión: si se guardó varias veces seguidas, esta ejecución puede venir de un commit antiguo.
+  git('config', 'user.name', 'Domingas (dobles)');
+  git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com');
+  git('fetch', 'origin', BRANCH);
+  git('reset', '--hard', `origin/${BRANCH}`);
   const V = view(read());
   const todo = [];
   for (const b of V.books()) for (const m of V.members()) if (!V.guess(b.id, m.id)) todo.push({b, m});
@@ -127,8 +132,6 @@ async function main(){
   if (!Object.keys(results).length){ process.exitCode = 1; return; }
 
   // Guardar: partimos siempre de la última versión, por si alguien ha guardado mientras tanto.
-  git('config', 'user.name', 'Domingas (dobles)');
-  git('config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com');
   for (let attempt = 0; attempt < 5; attempt++){
     git('fetch', 'origin', BRANCH);
     git('reset', '--hard', `origin/${BRANCH}`);
