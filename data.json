@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T12:41:10.719Z",
+  "updatedAt": "2026-10-04T12:41:33.413Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -82,6 +82,13 @@
       "score": 9,
       "comment": "Me ha encantado. La mirada de Nino es preciosa y te atrapa desde la primera página. Refleja muy bien esa época tan dura sin perder la ternura. Hacía tiempo que un libro no me emocionaba tanto.",
       "at": 1791117649342
+    },
+    "b-musvkvnr2mnx~m-mutt7q9xsqf4": {
+      "bookId": "b-musvkvnr2mnx",
+      "memberId": "m-mutt7q9xsqf4",
+      "score": 8,
+      "comment": "A mí me ha encantado, la verdad. Ver la posguerra a través de los ojos de Nino te llega directo al corazón. Almudena escribe de una manera que te atrapa desde la primera página y te deja pensando mucho después de terminarlo.",
+      "at": 1791117693223
     }
   }
 }
