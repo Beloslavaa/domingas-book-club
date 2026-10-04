@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T12:41:36.677Z",
+  "updatedAt": "2026-10-04T12:41:47.473Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -62,6 +62,21 @@
         "top": 3
       },
       "at": 1791117691734
+    },
+    "m-mutt8impf2tq": {
+      "name": "Moni",
+      "bio": "",
+      "look": {
+        "hair": "short",
+        "body": 1,
+        "mark": "stripe",
+        "glasses": false,
+        "beard": false,
+        "skin": 1,
+        "hc": 1,
+        "top": 2
+      },
+      "at": 1791117705553
     }
   },
   "books": {
