@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T12:41:51.326Z",
+  "updatedAt": "2026-10-04T12:42:04.975Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -126,6 +126,13 @@
       "score": 8,
       "comment": "Me ha parecido una novela durísima pero preciosa. La mirada de Nino te atrapa desde la primera página y refleja muy bien el miedo de aquella época en la sierra. El final te deja con el corazón en un puño. Muy buena elección.",
       "at": 1791117707973
+    },
+    "b-musvkvnr2mnx~m-mutt8impf2tq": {
+      "bookId": "b-musvkvnr2mnx",
+      "memberId": "m-mutt8impf2tq",
+      "score": 8,
+      "comment": "Me ha encantado la perspectiva de Nino, cómo va descubriendo la crudeza de la posguerra con esa inocencia. Almudena Grandes escribe de maravilla, te atrapa desde la primera página en la sierra de Jaén. Muy emotivo.",
+      "at": 1791117724669
     }
   }
 }
