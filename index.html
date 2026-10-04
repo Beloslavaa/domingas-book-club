@@ -77,6 +77,8 @@ button{cursor:pointer}
 .ten button{min-width:0}
 .rrow{padding:10px 0;border-bottom:2px dashed var(--c2)}
 .rrow .nm{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.rrow textarea.opin{margin-top:6px;min-height:0;font-size:19px}
+p.opin{margin:-2px 0 8px 38px;font-size:18px;color:var(--c1);line-height:1.1}
 .sticky{position:sticky;bottom:-32px;background:var(--c3);padding:14px 0 16px;margin-top:8px;border-top:3px solid var(--c0)}
 .table3{display:grid;grid-template-columns:28px 1fr 46px 46px;gap:8px 10px;align-items:center}
 .pick{display:grid;grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px}
@@ -490,7 +492,7 @@ function aboutMember(m){
 
 /* ---------- navigation ---------- */
 let view = {name:'home'}, selMember = null;
-let rateDraft = null, regBook = null, regEdit = null, playBook = null, playMember = null;
+let rateDraft = null, regBook = null, regEdit = null, regComments = {}, playBook = null, playMember = null;
 const FORM_VIEWS = ['addBook', 'member', 'settings'];
 function modeFor(n){ return n === 'home' ? 'home' : n === 'registry' ? 'full' : 'split'; }
 function go(name, arg){
@@ -629,10 +631,15 @@ function addBookView(el){
 
 /* ---------- rate a book ---------- */
 function startRating(bid){
-  const scores = {};
-  for (const m of members()){ const r = real(bid, m.id); scores[m.id] = scored(r) ? r.score : null; }
-  rateDraft = {bookId:bid, scores, dirty:false};
+  const scores = {}, comments = {};
+  for (const m of members()){ const r = real(bid, m.id); scores[m.id] = scored(r) ? r.score : null; comments[m.id] = (r && r.comment) || ''; }
+  rateDraft = {bookId:bid, scores, comments, dirty:false};
   go('rate');
+}
+// Opinión breve junto a la nota: la ve el club en el Registro y la usa el doble para conocer mejor a cada miembro.
+function opinionBox(value, onInput, name){
+  return h('textarea', {class:'opin', rows:'2', maxlength:'280', placeholder:'Opinión en una frase (opcional)', 'aria-label':`Opinión de ${name}`,
+    oninput:e => onInput(e.target.value)}, value || '');
 }
 function tenRow(value, onPick, small, label){
   const g = h('div', {class:'ten' + (small ? ' small' : ''), role:'group', 'aria-label':label});
@@ -649,21 +656,24 @@ function rateView(el){
     el.append(h('div', {class:'rrow'}, h('div', {class:'nm'}, h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}), h('span', {}, m.name)),
       tenRow(d.scores[m.id], v => { d.scores[m.id] = v; d.dirty = true; leaveArmed = false; selMember = m.id;
         const sp = sprites[m.id]; if (sp && v){ sp.bubble = 'num'; sp.num = v; sp.bubbleUntil = performance.now() + 4000; sp.jumpUntil = performance.now() + 600; }
-        renderPanel(true); }, true, `Nota de ${m.name}`)));
+        renderPanel(true); }, true, `Nota de ${m.name}`),
+      opinionBox(d.comments[m.id], v => { d.comments[m.id] = v; d.dirty = true; leaveArmed = false; }, m.name)));
   }
   const n = Object.values(d.scores).filter(isNum).length;
   el.append(h('div', {class:'sticky row'}, h('button', {class:'btn primary', onclick:saveRating}, 'Guardar notas'), h('span', {class:'muted'}, `${n} de ${ms.length}`)));
 }
-async function saveScores(bid, scores){
+async function saveScores(bid, scores, comments = {}){
   for (const [mid, score] of Object.entries(scores)){
-    const r = real(bid, mid), prev = scored(r) ? r.score : null;
-    if (prev === score) continue;
-    await write('ratings', rKey(bid, mid), {bookId:bid, memberId:mid, score, comment:(r && r.comment) || '', at:Date.now()});
+    const r = real(bid, mid), prev = scored(r) ? r.score : null, prevComment = (r && r.comment) || '';
+    const comment = mid in comments ? String(comments[mid] || '').trim().replace(/\s+/g, ' ') : prevComment;
+    if (prev === score && prevComment === comment) continue;
+    if (!r && score == null && !comment) continue;
+    await write('ratings', rKey(bid, mid), {bookId:bid, memberId:mid, score, comment, at:Date.now()});
   }
 }
 async function saveRating(){
   const d = rateDraft; if (!d) return;
-  try { await saveScores(d.bookId, d.scores); } catch (e) { return; }
+  try { await saveScores(d.bookId, d.scores, d.comments); } catch (e) { return; }
   const st = bookStats(d.bookId), b = S.books[d.bookId];
   rateDraft = null; leaveArmed = false;
   go('home');
@@ -727,10 +737,11 @@ function registryView(el){
   if (regEdit){
     for (const m of ms){
       el.append(h('div', {class:'rrow'}, h('div', {class:'nm'}, h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}), h('span', {}, m.name)),
-        tenRow(regEdit[m.id], v => { regEdit[m.id] = v; renderPanel(true); }, true, `Nota de ${m.name}`)));
+        tenRow(regEdit[m.id], v => { regEdit[m.id] = v; renderPanel(true); }, true, `Nota de ${m.name}`),
+        opinionBox(regComments[m.id], v => { regComments[m.id] = v; }, m.name)));
     }
     el.append(h('div', {class:'sticky row'},
-      h('button', {class:'btn primary', onclick:async () => { try { await saveScores(regBook, regEdit); } catch (e) { return; } regEdit = null; renderPanel(true); say(b.title, 'Cambios guardados.'); }}, 'Guardar cambios'),
+      h('button', {class:'btn primary', onclick:async () => { try { await saveScores(regBook, regEdit, regComments); } catch (e) { return; } regEdit = null; renderPanel(true); say(b.title, 'Cambios guardados.'); }}, 'Guardar cambios'),
       h('button', {class:'btn', onclick:() => { regEdit = null; renderPanel(true); }}, 'Cancelar')));
     return;
   }
@@ -741,6 +752,7 @@ function registryView(el){
       h('img', {class:'avatar', alt:'', src:avatarURL(m.look)}), h('b', {}, m.name),
       h('span', {class:'cell' + (scored(r) ? ' on' : ' empty') + (hit ? ' hit' : '')}, scored(r) ? r.score : '·'),
       h('span', {class:'cell' + (scored(g) ? '' : ' empty')}, scored(g) ? g.score : '·')));
+    if (r && r.comment) el.append(h('p', {class:'opin'}, `“${r.comment}”`));
   }
   let sure = false;
   const del = isGuest() ? null : h('button', {class:'btn', onclick:async () => {
@@ -750,7 +762,7 @@ function registryView(el){
     await remove('books', id); regBook = null; say('Domingas', `“${title}” borrado del registro.`); renderPanel(true);
   }}, 'Borrar libro');
   el.append(h('div', {class:'row', style:'margin-top:22px'},
-    h('button', {class:'btn primary', onclick:() => { regEdit = {}; for (const m of ms){ const r = real(regBook, m.id); regEdit[m.id] = scored(r) ? r.score : null; } renderPanel(true); }}, isGuest() ? 'Poner mi nota' : 'Editar notas'), del));
+    h('button', {class:'btn primary', onclick:() => { regEdit = {}; regComments = {}; for (const m of ms){ const r = real(regBook, m.id); regEdit[m.id] = scored(r) ? r.score : null; regComments[m.id] = (r && r.comment) || ''; } renderPanel(true); }}, isGuest() ? 'Poner mi nota' : 'Editar notas'), del));
 }
 
 /* ---------- members ---------- */
