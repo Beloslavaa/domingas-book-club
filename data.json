@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T12:43:12.474Z",
+  "updatedAt": "2026-10-04T12:43:49.541Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -96,6 +96,13 @@
       "score": 6,
       "comment": "",
       "at": 1791061182353
+    },
+    "b-musvkvnr2mnx~m-mutt7q9xsqf4": {
+      "bookId": "b-musvkvnr2mnx",
+      "memberId": "m-mutt7q9xsqf4",
+      "score": 9,
+      "comment": "",
+      "at": 1791117827535
     }
   },
   "personas": {
