@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T20:10:38.395Z",
+  "updatedAt": "2026-10-04T20:19:53.850Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -92,6 +92,21 @@
         "top": 3
       },
       "at": 1791144623612
+    },
+    "m-muu9lnfdsxid": {
+      "name": "Maria",
+      "bio": "",
+      "look": {
+        "hair": "long",
+        "body": 3,
+        "mark": "book",
+        "glasses": true,
+        "beard": false,
+        "skin": 0,
+        "hc": 2,
+        "top": 0
+      },
+      "at": 1791145192153
     }
   },
   "books": {
