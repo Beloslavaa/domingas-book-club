@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T13:00:11.085Z",
+  "updatedAt": "2026-10-04T20:10:25.579Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -77,6 +77,21 @@
         "top": 1
       },
       "at": 1791117705553
+    },
+    "m-muu99gqjvs1k": {
+      "name": "Diani",
+      "bio": "Me encanta leer libros existenciales y literatura contemporánea, son mi cosa <3",
+      "look": {
+        "hair": "long",
+        "body": 2,
+        "mark": "book",
+        "glasses": false,
+        "beard": false,
+        "skin": 0,
+        "hc": 2,
+        "top": 3
+      },
+      "at": 1791144623612
     }
   },
   "books": {
