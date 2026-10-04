@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T12:40:36.866Z",
+  "updatedAt": "2026-10-04T12:40:49.524Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -60,6 +60,13 @@
       "score": 8,
       "comment": "Me ha encantado, tiene ese trasfondo histórico tan duro. Aunque a veces me perdía y tenía que buscar análisis en internet porque mi mente se iba, la evolución moral de Nino es muy existencialista. Es una obra maestra clásica.",
       "at": 1791061190247
+    },
+    "b-musvkvnr2mnx~m-mutt70dakaqi": {
+      "bookId": "b-musvkvnr2mnx",
+      "memberId": "m-mutt70dakaqi",
+      "score": 9,
+      "comment": "Me ha encantado. La mirada de Nino es preciosa y te atrapa desde la primera página. Refleja muy bien esa época tan dura sin perder la ternura. Hacía tiempo que un libro no me emocionaba tanto.",
+      "at": 1791117649342
     }
   }
 }
