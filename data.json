@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T20:10:25.579Z",
+  "updatedAt": "2026-10-04T20:10:38.395Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -169,6 +169,13 @@
       "score": 8,
       "comment": "Me ha encantado la perspectiva de Nino, cómo va descubriendo la crudeza de la posguerra con esa inocencia. Almudena Grandes escribe de maravilla, te atrapa desde la primera página en la sierra de Jaén. Muy emotivo.",
       "at": 1791117724669
+    },
+    "b-musvkvnr2mnx~m-muu99gqjvs1k": {
+      "bookId": "b-musvkvnr2mnx",
+      "memberId": "m-muu99gqjvs1k",
+      "score": 9,
+      "comment": "Menudo descubrimiento de libro. La mirada de Nino en plena posguerra es brutal y te atrapa desde el principio. Te hace reflexionar sobre la infancia y la crueldad de una época con una sensibilidad increíble. Me ha encantado.",
+      "at": 1791144638210
     }
   }
 }
