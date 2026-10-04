@@ -1,7 +1,7 @@
 {
   "version": 1,
   "club": "Domingas",
-  "updatedAt": "2026-10-04T12:45:47.360Z",
+  "updatedAt": "2026-10-04T13:00:11.085Z",
   "members": {
     "m-muok3w0ff6xr": {
       "name": "Bella",
@@ -22,9 +22,9 @@
       "name": "Alex",
       "bio": "",
       "look": {
-        "hair": "pony",
-        "body": 2,
-        "mark": "none",
+        "hair": "long",
+        "body": 1,
+        "mark": "collar",
         "glasses": false,
         "beard": false,
         "skin": 2,
